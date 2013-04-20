@@ -2,10 +2,11 @@ package database
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"github.com/SlyMarbo/rss"
+	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	sec "rs3/security"
@@ -16,7 +17,6 @@ import (
 var db *database
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	db = newDatabase()
 }
 
@@ -52,18 +52,21 @@ type Cookie struct {
 	cookie  string
 }
 
-type CookieJar []Cookie
+type CookieJar []*Cookie
 
-func newCookie() Cookie {
-	var buf bytes.Buffer
-	for i := 0; i < 5; i++ {
-		buf.WriteString(fmt.Sprintf("%x", rand.Int63()))
+func newCookie() (*Cookie, error) {
+	b := make([]byte, 32) //256 bits
+	_, err := io.ReadFull(rand.Reader, b)
+	if err != nil {
+		return &Cookie{}, err
 	}
+
 	cookie := Cookie{
 		time.Now().Add(7 * 24 * time.Hour),
 		time.Now().Add(14 * 24 * time.Hour),
-		buf.String()[:256]}
-	return cookie
+		fmt.Sprintf("%16x", string(b)),
+	}
+	return &cookie, nil
 }
 
 type UserAlreadyExists struct{}
@@ -186,12 +189,12 @@ func Authenticate(uid, pswd []byte) bool {
 func Login(uid, pswd []byte) (string, time.Time, error) {
 	db.mutex.RLock()
 	defer db.mutex.RUnlock()
-	if !Authenticate(uid, pswd) {
-		return "", time.Now(), new(AuthenticationError)
-	}
 	user, ok := db.users[string(uid)]
 	if !ok {
 		return "", time.Now(), new(UserDoesNotExist)
+	}
+	if !Authenticate(uid, pswd) {
+		return "", time.Now(), new(AuthenticationError)
 	}
 	if len(user.Cookies) != 0 {
 		for i := 0; i < len(user.Cookies); i++ {
@@ -199,11 +202,18 @@ func Login(uid, pswd []byte) (string, time.Time, error) {
 				return user.Cookies[i].cookie, user.Cookies[i].exp, nil
 			}
 		}
-		c := newCookie()
+		c, err := newCookie()
+		if err != nil {
+			return "", time.Now(), err
+		}
 		user.Cookies = append(user.Cookies, c)
 		return c.cookie, c.exp, nil
 	} else {
-		user.Cookies = append(user.Cookies, newCookie())
+		c, err := newCookie()
+		if err != nil {
+			return "", time.Now(), err
+		}
+		user.Cookies = append(user.Cookies, c)
 		return user.Cookies[0].cookie, user.Cookies[0].exp, nil
 	}
 }
@@ -226,14 +236,14 @@ func Validate(cookie string, uid []byte) bool {
 
 //Nickname validates the cookie and returns the user's nickname
 func Nickname(uid []byte, cookie string) (string, error) {
-	if !Validate(cookie, uid) {
-		return "", new(AuthenticationError)
-	}
 	db.mutex.RLock()
 	defer db.mutex.RUnlock()
 	user, ok := db.users[string(uid)]
 	if !ok {
 		return "", new(UserDoesNotExist)
+	}
+	if !Validate(cookie, uid) {
+		return "", new(AuthenticationError)
 	}
 	return user.Nick, nil
 }
@@ -281,7 +291,7 @@ func UpdateNickname(uid []byte, cookie string, nickname string) error {
 func ResetUserFeeds(uid []byte) error {
 	db.mutex.RLock()
 	user, ok := db.users[string(uid)]
-	db.mutex.Unlock()
+	db.mutex.RUnlock()
 	if !ok {
 		return new(UserDoesNotExist)
 	}
@@ -335,7 +345,7 @@ func AddFeeds(uid []byte, cookie string, urls ...string) error {
 }
 
 func Debug() []byte {
-	return nil
+	return make([]byte, 0)
 }
 
 func (d *Database) Write([]byte) (int, error) {
@@ -345,7 +355,7 @@ func (d *Database) Write([]byte) (int, error) {
 
 func (d *Database) Read([]byte) (int, error) {
 	// backup
-	return 0, nil
+	return 0, io.EOF
 }
 
 func Backup(path string) error {

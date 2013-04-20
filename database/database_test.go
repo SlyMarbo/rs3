@@ -2,6 +2,7 @@ package database
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"rs3/security"
 	"testing"
@@ -46,7 +47,7 @@ func TestDatabaseLogic(t *testing.T) {
 		t.Fail()
 	}
 	err = AddUser(userID, gibberish, security.NewSalt(), string(gibberish), email)
-	if _, ok := err.(UserAlreadyExists); !ok {
+	if _, ok := err.(*UserAlreadyExists); !ok {
 		t.Error("Failed to detect creation of duplicate user.")
 		t.Fail()
 	}
@@ -77,12 +78,12 @@ func TestDatabaseLogic(t *testing.T) {
 
 	// Check login.
 	_, _, err = Login(gibberish, passwordHash)
-	if _, ok := err.(UserDoesNotExist); !ok {
+	if _, ok := err.(*UserDoesNotExist); !ok {
 		t.Error("Failed to detect non-existant user login attempt.")
 		t.Fail()
 	}
 	_, _, err = Login(userID, gibberish)
-	if _, ok := err.(AuthenticationError); !ok {
+	if _, ok := err.(*AuthenticationError); !ok {
 		t.Error("Failed to detect invalid password hash login attempt.")
 		t.Fail()
 	}
@@ -112,12 +113,12 @@ func TestDatabaseLogic(t *testing.T) {
 
 	// Check updating password.
 	err = UpdatePassword(userID, gibberish, []byte("more stuff"))
-	if _, ok := err.(AuthenticationError); !ok {
+	if _, ok := err.(*AuthenticationError); !ok {
 		t.Error("Allowed an unauthenticated change of password.")
 		t.Fail()
 	}
 	err = UpdatePassword(gibberish, gibberish, []byte("more stuff"))
-	if _, ok := err.(UserDoesNotExist); !ok {
+	if _, ok := err.(*UserDoesNotExist); !ok {
 		t.Error("Failed to detect a non-existant user in password update.")
 		t.Fail()
 	}
@@ -142,22 +143,22 @@ func TestDatabaseLogic(t *testing.T) {
 		t.Fail()
 	}
 	_, err = Nickname(userID, "gibberish")
-	if _, ok := err.(AuthenticationError); !ok {
+	if _, ok := err.(*AuthenticationError); !ok {
 		t.Error("Failed to detect invalid cookie on nickname request.")
 		t.Fail()
 	}
 	_, err = Nickname(gibberish, "gibberish")
-	if _, ok := err.(UserDoesNotExist); !ok {
+	if _, ok := err.(*UserDoesNotExist); !ok {
 		t.Error("Failed to detect non-existant user in nickname request.")
 		t.Fail()
 	}
 	err = UpdateNickname(userID, "gibberish", "gibberish")
-	if _, ok := err.(AuthenticationError); !ok {
+	if _, ok := err.(*AuthenticationError); !ok {
 		t.Error("Allowed an unauthenticated change of nickname.")
 		t.Fail()
 	}
 	err = UpdateNickname(gibberish, "gibberish", "gibberish")
-	if _, ok := err.(UserDoesNotExist); !ok {
+	if _, ok := err.(*UserDoesNotExist); !ok {
 		t.Error("Failed to detect a non-existant user in nickname update.")
 		t.Fail()
 	}
@@ -191,7 +192,7 @@ func TestDatabaseLogic(t *testing.T) {
 		t.Fail()
 	}
 	_, err = Feeds(gibberish)
-	if _, ok := err.(UserDoesNotExist); !ok {
+	if _, ok := err.(*UserDoesNotExist); !ok {
 		t.Error("Failed to detect non-existant user in feeds request.")
 		t.Fail()
 	}
@@ -204,6 +205,7 @@ func TestDatabaseLogic(t *testing.T) {
 		t.Error("Failed to reset feeds for valid user.")
 		t.Fail()
 	}
+
 	feeds, err = Feeds(userID)
 	if err != nil {
 		t.Error("Failed to provide feeds for valid user after reset.")
@@ -213,19 +215,20 @@ func TestDatabaseLogic(t *testing.T) {
 		t.Error("Provided nil feeds for valid user after reset.")
 		t.Fail()
 	}
+
 	if len(feeds) != 0 {
 		t.Error("Feeds given for user after reset.")
 		t.Fail()
 	}
 	err = ResetUserFeeds(gibberish)
-	if _, ok := err.(UserDoesNotExist); !ok {
+	if _, ok := err.(*UserDoesNotExist); !ok {
 		t.Error("Failed to detect non-existant user in feed reset request.")
 		t.Fail()
 	}
 
 	// Check deletion.
 	err = DeleteUser(gibberish)
-	if _, ok := err.(UserDoesNotExist); !ok {
+	if _, ok := err.(*UserDoesNotExist); !ok {
 		t.Error("Failed to detect deletion of non-existant user.")
 		t.Fail()
 	}
@@ -234,6 +237,6 @@ func TestDatabaseLogic(t *testing.T) {
 		t.Error(err)
 		t.Fail()
 	}
-
+	fmt.Println("END")
 	// TODO: check backup and restore.
 }
