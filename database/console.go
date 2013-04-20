@@ -84,7 +84,7 @@ func Console() {
 		// Cache content file.
 		case tokens[0] == "cache":
 			target := tokens[1]
-			err := server.Cache(target)
+			err := Cache(target)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err.Error())
 			}
@@ -94,4 +94,8 @@ func Console() {
   if err := scanner.Err(); err != nil {
     log.Fatal(os.Stderr, "reading standard input:", err)
   }
+}
+
+func Cache(s string) {
+	
 }
