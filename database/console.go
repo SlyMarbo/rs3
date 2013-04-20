@@ -2,7 +2,6 @@ package database
 
 import (
 	"bufio"
-  "bufio/scanner"
 	"fmt"
   "log"
   "os"

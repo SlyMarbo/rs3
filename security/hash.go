@@ -2,6 +2,7 @@ package security
 
 import (
 	"crypto/sha256"
+	"errors"
 	"math/rand"
 	"time"
 )
@@ -23,6 +24,10 @@ func NewSalt() *Salt {
 }
 
 func Hash(input string, s *Salt) ([]byte, error) {
+	if s == nil {
+		return nil, errors.New("Error: nil Salt provided.")
+	}
+	
 	length := len(input) + 32
 	salt := s.Bytes()
 

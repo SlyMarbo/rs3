@@ -11,7 +11,7 @@ type HTTPRedirector struct {}
 
 func (_ HTTPRedirector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := r.URL
-	url.Scheme = “https”
+	url.Scheme = "https"
 	http.Redirect(w, r, url.String(), 301)
 }
 
