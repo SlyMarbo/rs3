@@ -1,9 +1,10 @@
 package security
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"errors"
-	"math/rand"
+	"io/ioutil"
 	"time"
 )
 
@@ -15,10 +16,9 @@ func (s *Salt) Bytes() []byte {
 
 func NewSalt() *Salt {
 	out := new(Salt)
-	for i := 0; i < 16; i++ {
-		r := rand.Int63()
-		out[i] = byte(r)
-		out[16+i] = byte(r >> 8)
+	_, err := io.ReadFull(rand.Reader, out[])
+	if err != nil {
+		log.Fatal("Error: failed to create random data for salt.")
 	}
 	return out
 }

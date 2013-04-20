@@ -16,7 +16,7 @@ func (_ HTTPRedirector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url.String(), 301)
 }
 
-func serveHTTP(domain string) {
+func ServeHTTP(domain string) {
 	for {
 		err := http.ListenAndServe(domain, HTTPRedirector{})
 		fmt.Fprintf(os.Stderr, err.Error())
@@ -30,18 +30,18 @@ type Nexus struct{}
 func (_ Nexus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/", "/index.html":
-		return ServeMain(w, r)
+		ServeMain(w, r)
 		
 	case "/login":
-		return ServeLogin(w, r)
+		ServeLogin(w, r)
 		
 	default:
-		return NotFound(w, r)
+		NotFound(w, r)
 	}
 }
 
 
-func serveHTTPS(domain, cert, key string) {
+func ServeHTTPS(domain, cert, key string) {
 	err := http.ListenAndServeTLS(domain, cert, key, Nexus{})
 	if err != nil {
 		log.Fatal(err)
