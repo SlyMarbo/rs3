@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"github.com/SlyMarbo/rss"
 	"io"
@@ -106,10 +107,10 @@ func (err RestoreFailure) Error() string {
 }
 
 type database struct {
-	users  map[string]*User     //uid -> User
-	salts  map[string]*sec.Salt //email -> Salt
-	emails map[string]struct{}  //email -> null (for email existence check)
-	mutex  *sync.RWMutex
+	Users  map[string]*User     //uid -> User
+	Salts  map[string]*sec.Salt //email -> Salt
+	Emails map[string]struct{}  //email -> null (for email existence check)
+	*sync.RWMutex
 }
 
 type Database struct{}
@@ -126,54 +127,54 @@ func newDatabase() *database {
 }
 
 func Salt(email string) *sec.Salt {
-	return db.salts[email]
+	return db.Salts[email]
 }
 
 //AddUser creates a new user and adds it to the database. It establishes that both the user
 //does not exist and that their email is not in use
 func AddUser(uid, pwd []byte, salt *sec.Salt, nick, email string) error {
-	db.mutex.RLock()
-	if _, ok := db.users[string(uid)]; ok {
-		db.mutex.RUnlock()
+	db.RLock()
+	if _, ok := db.Users[string(uid)]; ok {
+		db.RUnlock()
 		return new(UserAlreadyExists)
 	}
-	if _, ok := db.emails[string(uid)]; ok {
-		db.mutex.RUnlock()
+	if _, ok := db.Emails[string(uid)]; ok {
+		db.RUnlock()
 		return new(EmailAlreadyExists)
 	}
-	db.mutex.RUnlock()
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	db.RUnlock()
+	db.Lock()
+	defer db.Unlock()
 	user := newUser(uid, pwd, salt, nick)
-	db.users[string(uid)] = user
-	db.emails[email] = *new(struct{})
+	db.Users[string(uid)] = user
+	db.Emails[email] = *new(struct{})
 	return nil
 }
 
 //Delete user removes a user from the database provided they exist in the system
 func DeleteUser(uid []byte) error {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	if _, ok := db.users[string(uid)]; !ok {
+	db.Lock()
+	defer db.Unlock()
+	if _, ok := db.Users[string(uid)]; !ok {
 		return new(UserDoesNotExist)
 	}
-	delete(db.users, string(uid))
+	delete(db.Users, string(uid))
 	return nil
 }
 
 //Exists confirms whether or not a user exists in the system
 func Exists(uid []byte) bool {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	_, ok := db.users[string(uid)]
+	db.RLock()
+	defer db.RUnlock()
+	_, ok := db.Users[string(uid)]
 	return ok
 }
 
 //Authenticate checks that the userID and password match.
 func Authenticate(uid, pswd []byte) bool {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	user, ok := db.users[string(uid)]
+	db.RLock()
+	defer db.RUnlock()
+	user, ok := db.Users[string(uid)]
 	if !ok {
 		return false
 	} else {
@@ -187,9 +188,9 @@ func Authenticate(uid, pswd []byte) bool {
 //Authenticates the user first
 //if user already has a valid cookie, returns that cookie as opposed to creating one
 func Login(uid, pswd []byte) (string, time.Time, error) {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	user, ok := db.users[string(uid)]
+	db.RLock()
+	defer db.RUnlock()
+	user, ok := db.Users[string(uid)]
 	if !ok {
 		return "", time.Now(), new(UserDoesNotExist)
 	}
@@ -220,9 +221,9 @@ func Login(uid, pswd []byte) (string, time.Time, error) {
 
 //Validate checks the cookie.
 func Validate(cookie string, uid []byte) bool {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	user, ok := db.users[string(uid)]
+	db.RLock()
+	defer db.RUnlock()
+	user, ok := db.Users[string(uid)]
 	if !ok { //user does not exist
 		return false
 	}
@@ -236,9 +237,9 @@ func Validate(cookie string, uid []byte) bool {
 
 //Nickname validates the cookie and returns the user's nickname
 func Nickname(uid []byte, cookie string) (string, error) {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	user, ok := db.users[string(uid)]
+	db.RLock()
+	defer db.RUnlock()
+	user, ok := db.Users[string(uid)]
 	if !ok {
 		return "", new(UserDoesNotExist)
 	}
@@ -250,19 +251,19 @@ func Nickname(uid []byte, cookie string) (string, error) {
 
 //UpdatePassword changes the password of a given user
 func UpdatePassword(uid, pwd, nPwd []byte) error {
-	db.mutex.RLock()
-	user, ok := db.users[string(uid)]
+	db.RLock()
+	user, ok := db.Users[string(uid)]
 	if !ok {
-		db.mutex.RUnlock()
+		db.RUnlock()
 		return new(UserDoesNotExist)
 	}
 	if !Authenticate(uid, pwd) {
-		db.mutex.RUnlock()
+		db.RUnlock()
 		return new(AuthenticationError)
 	}
-	db.mutex.RUnlock()
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	db.RUnlock()
+	db.Lock()
+	defer db.Unlock()
 	user.Pswrd = nPwd
 	return nil
 }
@@ -270,33 +271,33 @@ func UpdatePassword(uid, pwd, nPwd []byte) error {
 //UpdateNickname updates a users nickname having first established the existence
 //of a user and validated the cookie
 func UpdateNickname(uid []byte, cookie string, nickname string) error {
-	db.mutex.RLock()
-	user, ok := db.users[string(uid)]
+	db.RLock()
+	user, ok := db.Users[string(uid)]
 	if !ok {
-		db.mutex.RUnlock()
+		db.RUnlock()
 		return new(UserDoesNotExist)
 	}
 	if !Validate(cookie, uid) {
-		db.mutex.RUnlock()
+		db.RUnlock()
 		return new(AuthenticationError)
 	}
-	db.mutex.RUnlock()
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	db.RUnlock()
+	db.Lock()
+	defer db.Unlock()
 	user.Nick = nickname
 	return nil
 }
 
 // removes all feeds from user’s account.
 func ResetUserFeeds(uid []byte) error {
-	db.mutex.RLock()
-	user, ok := db.users[string(uid)]
-	db.mutex.RUnlock()
+	db.RLock()
+	user, ok := db.Users[string(uid)]
+	db.RUnlock()
 	if !ok {
 		return new(UserDoesNotExist)
 	}
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	db.Lock()
+	defer db.Unlock()
 	user.Feeds = make([]*rss.Feed, 0)
 	user.FeedUrls = make([]string, 0)
 	return nil
@@ -307,9 +308,9 @@ func Feeds(uid []byte) ([]*rss.Feed, error) {
 	if !Exists(uid) {
 		return nil, new(UserDoesNotExist)
 	}
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	user, _ := db.users[string(uid)]
+	db.RLock()
+	defer db.RUnlock()
+	user, _ := db.Users[string(uid)]
 	return user.Feeds, nil
 }
 
@@ -322,9 +323,9 @@ func AddFeeds(uid []byte, cookie string, urls ...string) error {
 	if !Exists(uid) {
 		return new(UserDoesNotExist)
 	}
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	user, _ := db.users[string(uid)]
+	db.Lock()
+	defer db.Unlock()
+	user, _ := db.Users[string(uid)]
 	for _, url := range urls {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -345,17 +346,34 @@ func AddFeeds(uid []byte, cookie string, urls ...string) error {
 }
 
 func Debug() []byte {
-	return make([]byte, 0)
+	var buf bytes.Buffer
+	buf.WriteString("\t === DATABASE DEBUG INFORMATION === \n")
+	buf.WriteString(fmt.Sprintf("  Total Users: %d\n", len(db.Users)))
+	buf.WriteString(fmt.Sprintf("  Total Salts: %d\n", len(db.Salts)))
+	buf.WriteString(fmt.Sprintf("  Total Emails: %d\n", len(db.Emails)))
+	return buf.Bytes()
 }
 
-func (d *Database) Write([]byte) (int, error) {
-	// restore
-	return 0, nil
-}
-
-func (d *Database) Read([]byte) (int, error) {
+func (d *Database) Write(json []byte) (int, error) {
 	// backup
-	return 0, io.EOF
+	err := fromJson(json)
+	if err != nil {
+		return 0, err
+	}
+	return len(json), nil
+}
+
+func (d *Database) Read(b []byte) (int, error) {
+	// restore
+	dBytes, err := toJson()
+	if err != nil {
+		return 0, err
+	}
+	i := 0
+	for l, m := len(b), len(dBytes); i < l && i < m; i++ {
+		b[i] = dBytes[i]
+	}
+	return i, io.EOF
 }
 
 func Backup(path string) error {
@@ -367,5 +385,26 @@ func Backup(path string) error {
 }
 
 func Restore(path string) error {
+	return nil
+}
+
+func toJson() ([]byte, error) {
+	db.RLock()
+	defer db.RUnlock()
+	b, err := json.Marshal(db)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func fromJson(data []byte) error {
+	db.RLock()
+	err := json.Unmarshal(data, &db)
+	if err != nil {
+		return err
+	}
+	defer db.RUnlock()
+	db.RWMutex = new(sync.RWMutex)
 	return nil
 }
