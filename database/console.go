@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func (d *Database) Console() {
+func Console() {
   scanner := bufio.NewScanner(os.Stdin)
   for scanner.Scan() {
 		tokens := strings.Split(scanner.Text(), " ")
@@ -34,7 +34,7 @@ func (d *Database) Console() {
 				fmt.Fprintln(os.Stderr, "Error: failed to hash username.")
 			}
 			
-			err = d.AddUser(uid, pwd, salt, nickname, username)
+			err = db.AddUser(uid, pwd, salt, nickname, username)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err.Error())
 			}
@@ -42,21 +42,21 @@ func (d *Database) Console() {
 		// Remove user.
 		case tokens[0] == "remove":
 			username := tokens[1]
-			salt := d.Salt(username)
+			salt := db.Salt(username)
 			
 			uid, err := security.Hash(username, salt)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Error: failed to hash username.")
 			}
 			
-			err = d.DeleteUser()
+			err = db.DeleteUser()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err.Error())
 			}
 			
 		// Debug.
 		case tokens[0] == "debug":
-			fmt.Println(d.Debug())
+			fmt.Println(db.Debug())
 			
 		// Stack trace.
 		case tokens[0] == "stacktrace":
@@ -74,12 +74,12 @@ func (d *Database) Console() {
 		// Backup database.
 		case tokens[0] == "backup":
 			target := tokens[1]
-			d.Backup(target)
+			db.Backup(target)
 			
 		// Restore database.
 		case tokens[0] == "restore":
 			origin := tokens[1]
-			d.Restore(origin)
+			db.Restore(origin)
 			
 		// Cache content file.
 		case tokens[0] == "cache":
