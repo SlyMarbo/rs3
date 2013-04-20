@@ -102,9 +102,9 @@ func (err RestoreFailure) Error() string {
 }
 
 type database struct {
-	users  map[string]*User
-	salts  map[string]*sec.Salt
-	emails map[string]struct{}
+	users  map[string]*User     //uid -> User
+	salts  map[string]*sec.Salt //email -> Salt
+	emails map[string]struct{}  //email -> null (for email existence check)
 	mutex  *sync.RWMutex
 }
 
@@ -119,6 +119,10 @@ func newDatabase() *database {
 		new(sync.RWMutex),
 	}
 	return &db
+}
+
+func Salt(email string) *sec.Salt {
+	return db.salts[email]
 }
 
 //AddUser creates a new user and adds it to the database. It establishes that both the user
