@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -46,10 +47,14 @@ func (_ Nexus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case strings.HasSuffix(r.URL.Path, "favicon.ico"):
 		http.ServeFile(w, r, "server/content/images/favicon.ico")
 		
-	case strings.HasPrefix(r.URL.Path, "/css/"),
-		strings.HasPrefix(r.URL.Path, "/js/"),
-		strings.HasPrefix(r.URL.Path, "/images/"):
-		http.ServeFile(w, r, "server/content" + r.URL.Path)
+	case strings.HasPrefix(r.URL.Path, "/css/"):
+		serveCSS(w, r, "server/content" + r.URL.Path)
+		
+	case strings.HasPrefix(r.URL.Path, "/js/"):
+		serveJS(w, r, "server/content" + r.URL.Path)
+		
+	case strings.HasPrefix(r.URL.Path, "/images/"):
+		serveImage(w, r, "server/content" + r.URL.Path)
 		
 	default:
 		NotFound(w, r)
@@ -61,5 +66,76 @@ func ServeHTTPS(domain, cert, key string) {
 	err := http.ListenAndServeTLS(domain + ":443", cert, key, Nexus{})
 	if err != nil {
 		log.Panic(err)
+	}
+}
+
+func serveCSS(w http.ResponseWriter, r *http.Request, s string) {
+	cache := database.Gzip(s)
+	
+	file, err := os.Open(s)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	
+	info, err := file.Stat()
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	
+	w.Header().Add("Content-Type", "text/css; charset=utf-8")
+	w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
+	_, err = io.Copy(w, file)
+	if err != nil {
+		log.Println("Failed to send", s)
+		log.Println(err)
+		return
+	}
+}
+
+func serveJS(w http.ResponseWriter, r *http.Request, s string) {
+	file, err := os.Open(s)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	
+	info, err := file.Stat()
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	
+	w.Header().Add("Content-Type", "application/x-javascript; charset=utf-8")
+	w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
+	_, err = io.Copy(w, file)
+	if err != nil {
+		log.Println("Failed to send", s)
+		log.Println(err)
+		return
+	}
+}
+
+func serveImage(w http.ResponseWriter, r *http.Request, s string) {
+	file, err := os.Open(s)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	
+	info, err := file.Stat()
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	
+	w.Header().Add("Content-Type", "image/png")
+	w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
+	_, err = io.Copy(w, file)
+	if err != nil {
+		log.Println("Failed to send", s)
+		log.Println(err)
+		return
 	}
 }

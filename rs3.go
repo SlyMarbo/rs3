@@ -3,6 +3,7 @@ package rs3
 import (
 	"errors"
 	"fmt"
+	"log"
 	"rs3/database"
 	"rs3/server"
 )
@@ -24,20 +25,25 @@ func (c *Config) ListenAndServe() error {
 	}
 
 	if c.BackupPath != "" {
-		database.Restore(c.BackupPath)
+		err := database.Restore(c.BackupPath)
+		if err != nil {
+			log.Panic(err)
+		}
 	}
 
 	defer func() {
 		err := recover()
-		fmt.Printf("*** TYPE ***: %T\n", err)
-		if err != nil {
+		if s, ok := err.(string); err != nil && (!ok || s == "") {
 			fmt.Println(err)
 		}
-		database.Backup(c.BackupPath)
+		err = database.Backup(c.BackupPath)
+		if err != nil {
+			log.Panic(err)
+		}
 	}()
 
-	go database.Console()
 	go server.ServeHTTP(c.Domain)
-	server.ServeHTTPS(c.Domain, c.CertPath, c.KeyPath)
+	go server.ServeHTTPS(c.Domain, c.CertPath, c.KeyPath)
+	database.Console()
 	return nil
 }
