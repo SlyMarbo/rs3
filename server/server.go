@@ -60,6 +60,6 @@ func (_ Nexus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func ServeHTTPS(domain, cert, key string) {
 	err := http.ListenAndServeTLS(domain + ":443", cert, key, Nexus{})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }

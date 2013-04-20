@@ -12,8 +12,14 @@ import (
 	"rs3/security"
 )
 
-func ServeLogin(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadFile("server/content/html/login.html")
+func serveLogin(w http.ResponseWriter, r *http.Request, failed bool) {
+	var path string
+	if failed {
+		path = "server/content/html/failed_login.html"
+	} else {
+		path = "server/content/html/login.html"
+	}
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Println("Failed to open login.html:")
 		log.Println(err)
@@ -38,7 +44,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	if len(b) == 0 {
-		ServeLogin(w, r)
+		serveLogin(w, r, false)
 		return
 	}
 	
@@ -53,7 +59,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	matches := regex.FindAllStringSubmatch(body, -1)
 	if matches == nil {
 		fmt.Printf("Eurgh: %q.\n", body)
-		ServeLogin(w, r)
+		serveLogin(w, r, false)
 		return
 	}
 	
@@ -63,8 +69,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	salt := database.Salt(username)
 	if salt == nil {
 		fmt.Printf("User %q does not exist.\n", username)
-		w.WriteHeader(501)
-		ServeLogin(w, r)
+		w.WriteHeader(401)
+		serveLogin(w, r, true)
 		return
 	}
 	uid, err := security.Hash(username, salt)

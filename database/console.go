@@ -16,6 +16,10 @@ func Console() {
 		tokens := strings.Split(scanner.Text(), " ")
 		switch {
 			
+		// Quit.
+		case tokens[0] == "exit":
+			panic("")
+			
 		// Add user.
 		case tokens[0] == "add":
 			username := tokens[1]
@@ -55,7 +59,7 @@ func Console() {
 			
 		// Debug.
 		case tokens[0] == "debug":
-			fmt.Println(Debug())
+			fmt.Println(string(Debug()))
 			
 		// Stack trace.
 		case tokens[0] == "stacktrace":
@@ -91,7 +95,7 @@ func Console() {
 		}
   }
   if err := scanner.Err(); err != nil {
-    log.Fatal(os.Stderr, "reading standard input:", err)
+    log.Panic(os.Stderr, "reading standard input:", err)
   }
 }
 
