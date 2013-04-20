@@ -6,7 +6,6 @@ import (
   "log"
   "os"
 	"rs3/security"
-	"rs3/server"
 	"runtime/pprof"
 	"strings"
 )
@@ -66,7 +65,7 @@ func Console() {
 				fmt.Fprintln(os.Stderr, "Error: failed to open target filepath.")
 			}
 			w := bufio.NewWriter(f)
-			err := pprof.Lookup("goroutine").WriteTo(w, 0)
+			err = pprof.Lookup("goroutine").WriteTo(w, 0)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Error: failed to write stacktrace.")
 			}
@@ -96,6 +95,6 @@ func Console() {
   }
 }
 
-func Cache(s string) {
-	
+func Cache(s string) error {
+	return nil
 }
