@@ -1,0 +1,1 @@
+java -jar compiler.jar --js=in1.js --js=in2.js ... --js_output_file=out.js
