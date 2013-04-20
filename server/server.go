@@ -18,7 +18,7 @@ func (_ HTTPRedirector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func serveHTTP(domain string) {
 	for {
 		err := http.ListenAndServe(domain, HTTPRedirector{})
-		fmt.Fprintf(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, err.Error())
 		time.Sleep(10 * time.Second)
 	}
 }
