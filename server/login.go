@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"rs3/database"
@@ -28,7 +29,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
+	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Error reading from login request:")
 		log.Println(err)
@@ -36,9 +37,22 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	regex := regexp.MustCompile(`u=([\w\.\@]+)&p=([\w\.\@]+)`)
-	matches := regex.FindAllStringSubmatch(string(body), -1)
+	if len(b) == 0 {
+		ServeLogin(w, r)
+		return
+	}
+	
+	body, err := url.QueryUnescape(string(b))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		http.Error(w, "Failed to process login.", 500)
+		return
+	}
+	
+	regex := regexp.MustCompile(`u=([\w\.\@]+)\&p=([\w]+)`)
+	matches := regex.FindAllStringSubmatch(body, -1)
 	if matches == nil {
+		fmt.Printf("Eurgh: %q.\n", body)
 		ServeLogin(w, r)
 		return
 	}

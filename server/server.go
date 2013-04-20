@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -35,15 +36,20 @@ func (_ Nexus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 	
 	// Re-route request.
-	switch r.URL.Path {
-	case "/", "/index.html":
+	switch {
+	case r.URL.Path == "/", r.URL.Path == "/index.html":
 		ServeMain(w, r)
 		
-	case "/login":
-		ServeLogin(w, r)
+	case r.URL.Path == "/login":
+		Login(w, r)
 		
-	case "/content/images/favicon.ico", "/favicon.ico":
+	case strings.HasSuffix(r.URL.Path, "favicon.ico"):
 		http.ServeFile(w, r, "server/content/images/favicon.ico")
+		
+	case strings.HasPrefix(r.URL.Path, "/css/"),
+		strings.HasPrefix(r.URL.Path, "/js/"),
+		strings.HasPrefix(r.URL.Path, "/images/"):
+		http.ServeFile(w, r, "server/content" + r.URL.Path)
 		
 	default:
 		NotFound(w, r)
