@@ -35,6 +35,9 @@ func (_ Nexus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/login":
 		ServeLogin(w, r)
 		
+	case "/content/images/favicon.ico", "/favicon.ico":
+		http.ServeFile(w, "server/content/images/favicon.ico")
+		
 	default:
 		NotFound(w, r)
 	}
