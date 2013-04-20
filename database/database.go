@@ -346,3 +346,15 @@ func (d *Database) Read([]byte) (int, error) {
 	// backup
 	return 0, nil
 }
+
+func Backup(path string) error {
+	_, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func Restore(path string) {
+	return nil
+}
