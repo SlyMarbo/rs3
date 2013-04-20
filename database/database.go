@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	sec "rs3/security"
 	"sync"
 	"time"
@@ -355,6 +356,6 @@ func Backup(path string) error {
 	return nil
 }
 
-func Restore(path string) {
+func Restore(path string) error {
 	return nil
 }
