@@ -58,7 +58,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	regex := regexp.MustCompile(`u=([\w\.\@]+)\&p=([\w]+)`)
 	matches := regex.FindAllStringSubmatch(body, -1)
 	if matches == nil {
-		fmt.Printf("Eurgh: %q.\n", body)
 		serveLogin(w, r, false)
 		return
 	}
