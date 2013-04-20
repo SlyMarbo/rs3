@@ -44,7 +44,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	
 	body, err := url.QueryUnescape(string(b))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Failed to process login.", 500)
 		return
 	}
@@ -61,23 +61,29 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	password := matches[0][2]
 	fmt.Printf("Found login attempt: %q, %q.\n", username, password)
 	salt := database.Salt(username)
+	if salt == nil {
+		fmt.Printf("User %q does not exist.\n", username)
+		w.WriteHeader(501)
+		ServeLogin(w, r)
+		return
+	}
 	uid, err := security.Hash(username, salt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Failed to process login.", 500)
 		return
 	}
 	
 	pwd, err := security.Hash(password, salt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Failed to process login.", 500)
 		return
 	}
 	
 	cookie, expiry, err := database.Login(uid, pwd)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Invalid login details.", 401)
 		return
 	}
