@@ -11,12 +11,11 @@ func BenchmarkSalt(b *testing.B) {
 }
 
 func BenchmarkHash(b *testing.B) {
-	var salt [32]byte
-	var hash []byte
+	var salt *Salt
 	var err error
 	for i := 0; i < b.N; i++ {
 		salt = NewSalt()
-		hash, err = Hash("password", salt)
+		_, err = Hash("password", salt)
 		if err != nil {
 			panic(err)
 		}
