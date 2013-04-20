@@ -203,25 +203,25 @@ func Login(uid, pswd []byte) (string, time.Time, error) {
 }
 
 //Validate checks the cookie.
-func Validate(cookie string, uid []byte) (bool, string) {
+func Validate(cookie string, uid []byte) (bool, *Cookie) {
 	db.RLock()
 	defer db.RUnlock()
 	user, ok := db.Users[string(uid)]
 	if !ok { //user does not exist
-		return false, ""
+		return false, nil
 	}
 	for _, uCookie := range user.Cookies {
 		if uCookie.cookie == cookie {
 			if uCookie.replace.Before(time.Now()) &&
 				uCookie.exp.After(time.Now()) {
 				uCookie = newCookie()
-				return true, uCookie.cookie
+				return true, uCookie
 			} else if uCookie.exp.After(time.Now()) {
-				return true, cookie
+				return true, uCookie
 			}
 		}
 	}
-	return false, ""
+	return false, nil
 }
 
 //Nickname validates the cookie and returns the user's nickname
