@@ -12,7 +12,7 @@ import (
 )
 
 func ServeLogin(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadFile("content/html/login.html")
+	data, err := ioutil.ReadFile("server/content/html/login.html")
 	if err != nil {
 		log.Println("Failed to open login.html:")
 		log.Println(err)

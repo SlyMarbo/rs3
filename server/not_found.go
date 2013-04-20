@@ -7,7 +7,7 @@ import (
 )
 
 func NotFound(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadFile("content/html/404.html")
+	data, err := ioutil.ReadFile("server/content/html/404.html")
 	if err != nil {
 		log.Println("Failed to open 404.html:")
 		log.Println(err)

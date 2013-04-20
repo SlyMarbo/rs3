@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
-	"io/ioutil"
-	"time"
+	"io"
+	"log"
 )
 
 type Salt [32]byte
@@ -65,8 +65,4 @@ func Hash(input string, s *Salt) ([]byte, error) {
 	}
 
 	return hash.Sum(nil), nil
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
