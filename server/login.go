@@ -12,8 +12,14 @@ import (
 	"rs3/security"
 )
 
-func ServeLogin(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadFile("server/content/html/login.html")
+func serveLogin(w http.ResponseWriter, r *http.Request, failed bool) {
+	var path string
+	if failed {
+		path = "server/content/html/failed_login.html"
+	} else {
+		path = "server/content/html/login.html"
+	}
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Println("Failed to open login.html:")
 		log.Println(err)
@@ -38,13 +44,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	if len(b) == 0 {
-		ServeLogin(w, r)
+		serveLogin(w, r, false)
 		return
 	}
 	
 	body, err := url.QueryUnescape(string(b))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Failed to process login.", 500)
 		return
 	}
@@ -53,7 +59,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	matches := regex.FindAllStringSubmatch(body, -1)
 	if matches == nil {
 		fmt.Printf("Eurgh: %q.\n", body)
-		ServeLogin(w, r)
+		serveLogin(w, r, false)
 		return
 	}
 	
@@ -61,23 +67,29 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	password := matches[0][2]
 	fmt.Printf("Found login attempt: %q, %q.\n", username, password)
 	salt := database.Salt(username)
+	if salt == nil {
+		fmt.Printf("User %q does not exist.\n", username)
+		w.WriteHeader(401)
+		serveLogin(w, r, true)
+		return
+	}
 	uid, err := security.Hash(username, salt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Failed to process login.", 500)
 		return
 	}
 	
 	pwd, err := security.Hash(password, salt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Failed to process login.", 500)
 		return
 	}
 	
 	cookie, expiry, err := database.Login(uid, pwd)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		http.Error(w, "Invalid login details.", 401)
 		return
 	}

@@ -18,7 +18,7 @@ func NewSalt() *Salt {
 	out := new(Salt)
 	_, err := io.ReadFull(rand.Reader, out[:])
 	if err != nil {
-		log.Fatal("Error: failed to create random data for salt.")
+		log.Panic("Error: failed to create random data for salt.")
 	}
 	return out
 }
