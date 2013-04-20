@@ -348,31 +348,44 @@ func Backup(path string) error {
 	if err != nil {
 		return err
 	}
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	zipper := gzip.NewWriter(buf)
-	_, err := io.Copy(zipper, db)
+	_, err = io.Copy(zipper, new(Database))
 	if err != nil {
+		zipper.Close()
 		return err
 	}
-	zipper.Close()
 	var key, iv []byte
-	keyFile, err := os.Open("database/backup.key")
+	_, err = os.Open("database/backup.key")
 	if os.IsNotExist(err) {
 		key = make([]byte, 32) //256 bits
 		_, err := io.ReadFull(rand.Reader, key)
 		if err != nil {
 			return err
 		}
-		iv = make([]byte, 32)
+		iv = make([]byte, aes.BlockSize)
 		_, err = io.ReadFull(rand.Reader, iv)
 		if err != nil {
 			return err
 		}
-	} else {
-		_, err := io.Copy(key, keyFile)
+		newKeyFile, err := os.Create("database/backup.key")
 		if err != nil {
 			return err
 		}
+		newKeyFile.Write(key)
+		ivFile, err := os.Create("database/iv.key")
+		if err != nil {
+			return err
+		}
+		ivFile.Write(iv)
+	} else {
+		key = make([]byte, 32)
+		key, err := ioutil.ReadFile("database/backup.key")
+		fmt.Println(key, len(key))
+		if err != nil {
+			return err
+		}
+		iv = make([]byte, 32)
 		iv, err = ioutil.ReadFile("database/iv.key")
 		if err != nil {
 			return err
@@ -382,9 +395,19 @@ func Backup(path string) error {
 	if err != nil {
 		return err
 	}
-	encrypter, err = cipher.NewCBCEncryptor(block, iv)
+	encrypter := cipher.NewCBCEncrypter(block, iv)
 	if err != nil {
 		return err
+	}
+	if dif := buf.Len() % aes.BlockSize; dif != 0 {
+		dif = aes.BlockSize - dif
+		for i := 0; i < dif; i++ {
+			buf.Write([]byte{byte(dif)})
+		}
+	} else {
+		for i := 0; i < aes.BlockSize; i++ {
+			buf.Write([]byte{byte(aes.BlockSize)})
+		}
 	}
 	data := make([]byte, buf.Len())
 	encrypter.CryptBlocks(data, buf.Bytes())
@@ -393,16 +416,12 @@ func Backup(path string) error {
 }
 
 func Restore(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
 	var key, iv []byte
 	keyFile, err := os.Open("database/backup.key")
 	if os.IsNotExist(err) {
 		return err
 	} else {
-		_, err := io.Copy(key, keyFile)
+		_, err := keyFile.Read(key)
 		if err != nil {
 			return err
 		}
@@ -415,7 +434,8 @@ func Restore(path string) error {
 	if err != nil {
 		return err
 	}
-	decrypter, err = cipher.NewCBCDecryptor(block, iv)
+	decrypter := cipher.NewCBCDecrypter(block, iv)
+
 	if err != nil {
 		return err
 	}
@@ -425,12 +445,14 @@ func Restore(path string) error {
 	}
 	buf := make([]byte, len(data))
 	decrypter.CryptBlocks(buf, data)
+	dif := int(buf[len(buf)-1]) + 1
+	buf = buf[:len(buf)-dif]
 	r := bytes.NewReader(buf)
 	unzipper, err := gzip.NewReader(r)
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(db, unzipper)
+	_, err = io.Copy(new(Database), unzipper)
 	defer unzipper.Close()
 	return err
 }

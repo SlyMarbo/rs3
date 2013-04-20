@@ -3,7 +3,6 @@ package database
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"rs3/security"
 	"testing"
 )
@@ -37,7 +36,7 @@ func TestDatabaseLogic(t *testing.T) {
 	// }
 
 	// Try adding a user.
-	err = AddUser(userID, passwordHash, security.NewSalt(), nickname, email)
+	err := AddUser(userID, passwordHash, security.NewSalt(), nickname, email)
 	if err != nil {
 		t.Error(err)
 		t.Fail()
@@ -252,6 +251,18 @@ func TestDatabaseBackupAndRestore(t *testing.T) {
 	fmt.Println(string(user.Uid))
 	fmt.Println(string(user.Pswrd))
 
-	_ := Backup("test_backup.enc")
-
+	err := Backup("test_backup.enc")
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = Restore("test_backup.enc")
+	if err != nil {
+		return err
+	}
+	if user, ok := db.Users["THIS IS A UID"]; ok {
+		fmt.Println(string(user.Uid))
+		fmt.Println(string(user.Pswrd))
+	} else {
+		fmt.Println("FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU")
+	}
 }
