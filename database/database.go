@@ -2,6 +2,9 @@ package database
 
 import (
 	"bytes"
+	"compress/gzip"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -19,6 +22,26 @@ var db *database
 
 func init() {
 	db = newDatabase()
+}
+
+type database struct {
+	Users  map[string]*User     //uid -> User
+	Salts  map[string]*sec.Salt //email -> Salt
+	Emails map[string]struct{}  //email -> null (for email existence check)
+	*sync.RWMutex
+}
+
+type Database struct{}
+
+// func NewDatabase() *Database
+func newDatabase() *database {
+	db := database{
+		make(map[string]*User),
+		make(map[string]*sec.Salt),
+		make(map[string]struct{}),
+		new(sync.RWMutex),
+	}
+	return &db
 }
 
 type User struct {
@@ -68,62 +91,6 @@ func newCookie() (*Cookie, error) {
 		fmt.Sprintf("%16x", string(b)),
 	}
 	return &cookie, nil
-}
-
-type UserAlreadyExists struct{}
-
-func (err UserAlreadyExists) Error() string {
-	return "User ID Already Exists"
-}
-
-type UserDoesNotExist struct{}
-
-func (err UserDoesNotExist) Error() string {
-	return "User ID Does Not Exist"
-}
-
-type EmailAlreadyExists struct{}
-
-func (err EmailAlreadyExists) Error() string {
-	return "Email Already Exists"
-}
-
-type AuthenticationError struct{}
-
-func (err AuthenticationError) Error() string {
-	return "Authentication Failure, User ID or Password Incorrect"
-}
-
-type BackupFailure struct{}
-
-func (err BackupFailure) Error() string {
-	return "Failed to Backup Database"
-}
-
-type RestoreFailure struct{}
-
-func (err RestoreFailure) Error() string {
-	return "Failed to Restore Database"
-}
-
-type database struct {
-	Users  map[string]*User     //uid -> User
-	Salts  map[string]*sec.Salt //email -> Salt
-	Emails map[string]struct{}  //email -> null (for email existence check)
-	*sync.RWMutex
-}
-
-type Database struct{}
-
-// func NewDatabase() *Database
-func newDatabase() *database {
-	db := database{
-		make(map[string]*User),
-		make(map[string]*sec.Salt),
-		make(map[string]struct{}),
-		new(sync.RWMutex),
-	}
-	return &db
 }
 
 func Salt(email string) *sec.Salt {
@@ -377,15 +344,95 @@ func (d *Database) Read(b []byte) (int, error) {
 }
 
 func Backup(path string) error {
-	_, err := os.Create(path)
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	return nil
+	var buf bytes.Buffer
+	zipper := gzip.NewWriter(buf)
+	_, err := io.Copy(zipper, db)
+	if err != nil {
+		return err
+	}
+	zipper.Close()
+	var key, iv []byte
+	keyFile, err := os.Open("database/backup.key")
+	if os.IsNotExist(err) {
+		key = make([]byte, 32) //256 bits
+		_, err := io.ReadFull(rand.Reader, key)
+		if err != nil {
+			return err
+		}
+		iv = make([]byte, 32)
+		_, err = io.ReadFull(rand.Reader, iv)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := io.Copy(key, keyFile)
+		if err != nil {
+			return err
+		}
+		iv, err = ioutil.ReadFile("database/iv.key")
+		if err != nil {
+			return err
+		}
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return err
+	}
+	encrypter, err = cipher.NewCBCEncryptor(block, iv)
+	if err != nil {
+		return err
+	}
+	data := make([]byte, buf.Len())
+	encrypter.CryptBlocks(data, buf.Bytes())
+	_, err = f.Write(data)
+	return err
 }
 
 func Restore(path string) error {
-	return nil
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	var key, iv []byte
+	keyFile, err := os.Open("database/backup.key")
+	if os.IsNotExist(err) {
+		return err
+	} else {
+		_, err := io.Copy(key, keyFile)
+		if err != nil {
+			return err
+		}
+		iv, err = ioutil.ReadFile("database/iv.key")
+		if err != nil {
+			return err
+		}
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return err
+	}
+	decrypter, err = cipher.NewCBCDecryptor(block, iv)
+	if err != nil {
+		return err
+	}
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	buf := make([]byte, len(data))
+	decrypter.CryptBlocks(buf, data)
+	r := bytes.NewReader(buf)
+	unzipper, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(db, unzipper)
+	defer unzipper.Close()
+	return err
 }
 
 func toJson() ([]byte, error) {
@@ -407,4 +454,43 @@ func fromJson(data []byte) error {
 	defer db.RUnlock()
 	db.RWMutex = new(sync.RWMutex)
 	return nil
+}
+
+/*
+ DATABASE ERRORS
+*/
+type UserAlreadyExists struct{}
+
+func (err UserAlreadyExists) Error() string {
+	return "User ID Already Exists"
+}
+
+type UserDoesNotExist struct{}
+
+func (err UserDoesNotExist) Error() string {
+	return "User ID Does Not Exist"
+}
+
+type EmailAlreadyExists struct{}
+
+func (err EmailAlreadyExists) Error() string {
+	return "Email Already Exists"
+}
+
+type AuthenticationError struct{}
+
+func (err AuthenticationError) Error() string {
+	return "Authentication Failure, User ID or Password Incorrect"
+}
+
+type BackupFailure struct{}
+
+func (err BackupFailure) Error() string {
+	return "Failed to Backup Database"
+}
+
+type RestoreFailure struct{}
+
+func (err RestoreFailure) Error() string {
+	return "Failed to Restore Database"
 }

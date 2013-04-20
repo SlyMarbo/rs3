@@ -2,7 +2,7 @@
 .key
 .DS_Store
 
-
+*.enc
 *.key
 
 *.pem

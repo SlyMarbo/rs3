@@ -251,4 +251,7 @@ func TestDatabaseBackupAndRestore(t *testing.T) {
 	user := db.Users["THIS IS A UID"]
 	fmt.Println(string(user.Uid))
 	fmt.Println(string(user.Pswrd))
+
+	_ := Backup("test_backup.enc")
+
 }
