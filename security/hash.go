@@ -16,7 +16,7 @@ func (s *Salt) Bytes() []byte {
 
 func NewSalt() *Salt {
 	out := new(Salt)
-	_, err := io.ReadFull(rand.Reader, out[])
+	_, err := io.ReadFull(rand.Reader, out[:])
 	if err != nil {
 		log.Fatal("Error: failed to create random data for salt.")
 	}
