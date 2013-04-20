@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"rs3/database"
 	"rs3/server"
 )
@@ -25,9 +26,12 @@ func (c *Config) ListenAndServe() error {
 	}
 
 	if c.BackupPath != "" {
-		err := database.Restore(c.BackupPath)
-		if err != nil {
-			log.Panic(err)
+		_, err := os.Stat(c.BackupPath)
+		if err == nil {
+			err := database.Restore(c.BackupPath)
+			if err != nil {
+				log.Panic(err)
+			}
 		}
 	}
 

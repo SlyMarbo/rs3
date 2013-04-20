@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"rs3/database"
 	"strings"
 	"time"
 )
@@ -70,7 +71,6 @@ func ServeHTTPS(domain, cert, key string) {
 }
 
 func serveCSS(w http.ResponseWriter, r *http.Request, s string) {
-	cache := database.Gzip(s)
 	
 	file, err := os.Open(s)
 	if err != nil {
@@ -82,6 +82,23 @@ func serveCSS(w http.ResponseWriter, r *http.Request, s string) {
 	if err != nil {
 		http.NotFound(w, r)
 		return
+	}
+	
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		cache := database.Gzip(s)
+		if cache != nil {
+			path := cache.Path
+			cached, err := os.Open(path)
+			if err == nil {
+				cachedStat, err := cached.Stat()
+				if err == nil && cachedStat.ModTime().After(info.ModTime()) {
+					file.Close()
+					file = cached
+					info = cachedStat
+					w.Header().Add("Content-Encoding", "gzip")
+				}
+			}
+		}
 	}
 	
 	w.Header().Add("Content-Type", "text/css; charset=utf-8")
@@ -105,6 +122,23 @@ func serveJS(w http.ResponseWriter, r *http.Request, s string) {
 	if err != nil {
 		http.NotFound(w, r)
 		return
+	}
+	
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		cache := database.Gzip(s)
+		if cache != nil {
+			path := cache.Path
+			cached, err := os.Open(path)
+			if err == nil {
+				cachedStat, err := cached.Stat()
+				if err == nil && cachedStat.ModTime().After(info.ModTime()) {
+					file.Close()
+					file = cached
+					info = cachedStat
+					w.Header().Add("Content-Encoding", "gzip")
+				}
+			}
+		}
 	}
 	
 	w.Header().Add("Content-Type", "application/x-javascript; charset=utf-8")
