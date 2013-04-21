@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>RS3 Login</title>
+		<title>RS3</title>
 		<link rel="shortcut icon" href="/content/images/favicon.ico" />
 		<link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
 		<style>
@@ -24,6 +24,17 @@
 			font-size: 38pt;
 			line-height: 50px;
 		}
+		#container {
+			margin-top: 50px;
+		}
+		#sidebar {
+			color: orange;
+			background-color: blue;
+		}
+		#main_body {
+			color: orange;
+			background-color: green;
+		}
 		img {
 			vertical-align: top;
 		}
@@ -31,10 +42,18 @@
 	</head>
 	<body>
 		<div class="row" id="navbar">
-			<!-- <div class="span12"> -->
-				<div id="title">RS3</h1>
-				<img src="/images/logo_50.png" alt="RS3 logo">
-			<!-- </div> -->
+			<div id="title">RS3</div>
+			<img src="/images/logo_50.png" alt="RS3 logo">
+		</div>
+		<div class="container-fluid" id="container">
+		 <div class="row-fluid">
+		   <div class="span2">
+		     <div id="sidebar">Feeds</div>
+		   </div>
+		   <div class="span10">
+		     <div id="main_body">Items</div>
+		   </div>
+		 </div>
 		</div>
 	</body>
 </html>
