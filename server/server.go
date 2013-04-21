@@ -1,6 +1,7 @@
 package server
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"log"
@@ -57,6 +58,9 @@ func (_ Nexus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(r.URL.Path, "/images/"):
 		serveImage(w, r, "server/content" + r.URL.Path)
 		
+	case strings.HasPrefix(r.URL.Path, "/img/"):
+		serveImage(w, r, "server/content/images/" + r.URL.Path[len("/img/"):])
+		
 	default:
 		NotFound(w, r)
 	}
@@ -71,7 +75,6 @@ func ServeHTTPS(domain, cert, key string) {
 }
 
 func serveCSS(w http.ResponseWriter, r *http.Request, s string) {
-	
 	file, err := os.Open(s)
 	if err != nil {
 		http.NotFound(w, r)
@@ -98,6 +101,19 @@ func serveCSS(w http.ResponseWriter, r *http.Request, s string) {
 					w.Header().Add("Content-Encoding", "gzip")
 				}
 			}
+		} else {
+			w.Header().Set("Content-Encoding", "gzip")
+			gz := gzip.NewWriter(w)
+			w.Header().Add("Content-Type", "text/css; charset=utf-8")
+			w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
+			_, err = io.Copy(gz, file)
+			if err != nil {
+				fmt.Println("Failed to send", s)
+				fmt.Println(err)
+				return
+			}
+			gz.Close()
+			return
 		}
 	}
 	
@@ -138,6 +154,19 @@ func serveJS(w http.ResponseWriter, r *http.Request, s string) {
 					w.Header().Add("Content-Encoding", "gzip")
 				}
 			}
+		} else {
+			w.Header().Set("Content-Encoding", "gzip")
+			gz := gzip.NewWriter(w)
+			w.Header().Add("Content-Type", "application/x-javascript; charset=utf-8")
+			w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
+			_, err = io.Copy(gz, file)
+			if err != nil {
+				fmt.Println("Failed to send", s)
+				fmt.Println(err)
+				return
+			}
+			gz.Close()
+			return
 		}
 	}
 	

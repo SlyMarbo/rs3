@@ -1,4 +1,4 @@
-<html>
+{{define "T"}}<html>
 	<head>
 		<title>RS3</title>
 		<link rel="shortcut icon" href="/content/images/favicon.ico" />
@@ -24,6 +24,10 @@
 			font-size: 38pt;
 			line-height: 50px;
 		}
+		#nickname {
+			float: right;
+			padding: 15px;
+		}
 		#container {
 			margin-top: 50px;
 		}
@@ -44,6 +48,7 @@
 		<div class="row" id="navbar">
 			<div id="title">RS3</div>
 			<img src="/images/logo_50.png" alt="RS3 logo">
+			<div id="nickname"><i class="icon-user"></i> {{.}}</div>
 		</div>
 		<div class="container-fluid" id="container">
 		 <div class="row-fluid">
@@ -56,4 +61,4 @@
 		 </div>
 		</div>
 	</body>
-</html>
+</html>{{end}}
