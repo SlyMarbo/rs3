@@ -311,7 +311,6 @@ func Feeds(uid []byte) ([]*rss.Feed, error) {
 // func Update(userID []byte, delta *Delta) error {
 // 	return nil
 // }
-
 func AddFeeds(uid []byte, cookie string, urls ...string) error {
 	if !Exists(uid) {
 		return new(UserDoesNotExist)
@@ -336,6 +335,21 @@ func AddFeeds(uid []byte, cookie string, urls ...string) error {
 		user.FeedUrls = append(user.FeedUrls, feed.Link)
 	}
 	return nil
+}
+
+func FeedsToJson(uid []byte, cookie string) ([]byte, error) {
+	if ok, _, _ := Validate(cookie, uid); !ok {
+		return nil, new(AuthenticationError)
+	}
+	feeds, err := Feeds(uid)
+	if err != nil {
+		return nil, err
+	}
+	b, err := json.Marshal(feeds)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 func Debug() []byte {
@@ -370,22 +384,23 @@ func (d *Database) Read(b []byte) (int, error) {
 }
 
 func Backup(path string) error {
+	bErr := new(BackupFailure)
 	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return bErr.Append(err)
 	}
-	
+
 	buf := new(bytes.Buffer)
 	zipper := gzip.NewWriter(buf)
 	_, err = io.Copy(zipper, new(Database))
 	if err != nil {
-		return err
+		return bErr.Append(err)
 	}
 	zipper.Close()
 	compressed := new(bytes.Buffer)
 	_, err = io.Copy(compressed, buf)
 	if err != nil {
-		return err
+		return bErr.Append(err)
 	}
 
 	//	fmt.Println(buf.Bytes())
@@ -395,50 +410,50 @@ func Backup(path string) error {
 		key = make([]byte, 32) //256 bits
 		_, err := io.ReadFull(rand.Reader, key)
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 		iv = make([]byte, aes.BlockSize)
 		_, err = io.ReadFull(rand.Reader, iv)
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 		newKeyFile, err := os.Create("database/backup.key")
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 		_, err = newKeyFile.Write(key)
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 		newKeyFile.Close()
 		ivFile, err := os.Create("database/iv.key")
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 		_, err = ivFile.Write(iv)
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 		ivFile.Close()
 	} else {
 		key = make([]byte, 32)
 		key, err = ioutil.ReadFile("database/backup.key")
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 		iv = make([]byte, aes.BlockSize)
 		iv, err = ioutil.ReadFile("database/iv.key")
 		if err != nil {
-			return err
+			return bErr.Append(err)
 		}
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return bErr.Append(err)
 	}
 	encrypter := cipher.NewCBCEncrypter(block, iv)
 	if err != nil {
-		return err
+		return bErr.Append(err)
 	}
 	if dif := compressed.Len() % aes.BlockSize; dif != 0 {
 		dif = aes.BlockSize - dif
@@ -454,36 +469,37 @@ func Backup(path string) error {
 	encrypter.CryptBlocks(data, data)
 	//	_, err = io.Copy(buf, new(Database))
 	_, err = io.Copy(f, bytes.NewBuffer(data)) //f.Write(compressed.Bytes())
-	return err
+	return bErr.Append(err)
 }
 
 func Restore(path string) error {
 	f, err := os.Open(path)
+	rErr := new(RestoreFailure)
 	if err != nil {
-		return err
+		return rErr.Append(err)
 	}
 	var key, iv []byte
 	_, err = os.Open("database/backup.key")
 	if os.IsNotExist(err) {
-		return err
+		return rErr.Append(err)
 	} else {
 		key, err = ioutil.ReadFile("database/backup.key")
 		if err != nil {
-			return err
+			return rErr.Append(err)
 		}
 		iv, err = ioutil.ReadFile("database/iv.key")
 		if err != nil {
-			return err
+			return rErr.Append(err)
 		}
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return rErr.Append(err)
 	}
 	decrypter := cipher.NewCBCDecrypter(block, iv)
 	data, err := ioutil.ReadAll(f)
 	if err != nil {
-		return err
+		return rErr.Append(err)
 	}
 	decrypter.CryptBlocks(data, data)
 
@@ -493,12 +509,12 @@ func Restore(path string) error {
 	r := bytes.NewBuffer(data)
 	unzipper, err := gzip.NewReader(r)
 	if err != nil {
-		return err
+		return rErr.Append(err)
 	}
 	unzipper.Close()
 	_, err = io.Copy(new(Database), unzipper)
 
-	return err
+	return rErr.Append(err)
 }
 
 func toJson() ([]byte, error) {
@@ -534,43 +550,4 @@ func StringToUid(s string) ([]byte, error) {
 		return nil, err
 	}
 	return uidBytes[:n], nil
-}
-
-/*
- DATABASE ERRORS
-*/
-type UserAlreadyExists struct{}
-
-func (err UserAlreadyExists) Error() string {
-	return "User ID Already Exists"
-}
-
-type UserDoesNotExist struct{}
-
-func (err UserDoesNotExist) Error() string {
-	return "User ID Does Not Exist"
-}
-
-type EmailAlreadyExists struct{}
-
-func (err EmailAlreadyExists) Error() string {
-	return "Email Already Exists"
-}
-
-type AuthenticationError struct{}
-
-func (err AuthenticationError) Error() string {
-	return "Authentication Failure, User ID or Password Incorrect"
-}
-
-type BackupFailure struct{}
-
-func (err BackupFailure) Error() string {
-	return "Failed to Backup Database"
-}
-
-type RestoreFailure struct{}
-
-func (err RestoreFailure) Error() string {
-	return "Failed to Restore Database"
 }

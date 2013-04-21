@@ -1,5 +1,9 @@
 package database
 
+import (
+	"errors"
+)
+
 /*
  DATABASE ERRORS
 */
@@ -29,11 +33,19 @@ func (err AuthenticationError) Error() string {
 
 type BackupFailure struct{}
 
+func (b BackupFailure) Append(err error) error {
+	return errors.New(b.Error() + ":" + err.Error())
+}
+
 func (err BackupFailure) Error() string {
 	return "Failed to Backup Database"
 }
 
 type RestoreFailure struct{}
+
+func (r RestoreFailure) Append(err error) error {
+	return errors.New(r.Error() + ":" + err.Error())
+}
 
 func (err RestoreFailure) Error() string {
 	return "Failed to Restore Database"
