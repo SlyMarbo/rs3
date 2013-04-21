@@ -6,6 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/SlyMarbo/rss"
@@ -78,9 +79,9 @@ func newUser(uid, pwd []byte, salt *sec.Salt, nick string) *User {
 
 //256 rand number 
 type Cookie struct {
-	exp     time.Time
-	replace time.Time
-	cookie  string
+	Exp     time.Time
+	Replace time.Time
+	Cookie  string
 }
 
 type CookieJar []*Cookie
@@ -116,7 +117,7 @@ func Gzip(str string) *CacheItem {
 //does not exist and that their email is not in use
 func AddUser(uid, pwd []byte, salt *sec.Salt, nick, email string) error {
 	db.RLock()
-	if _, ok := db.Users[string(uid)]; ok {
+	if _, ok := db.Users[UidToString(uid)]; ok {
 		db.RUnlock()
 		return new(UserAlreadyExists)
 	}
@@ -128,7 +129,7 @@ func AddUser(uid, pwd []byte, salt *sec.Salt, nick, email string) error {
 	db.Lock()
 	defer db.Unlock()
 	user := newUser(uid, pwd, salt, nick)
-	db.Users[string(uid)] = user
+	db.Users[UidToString(uid)] = user
 	db.Salts[email] = salt
 	db.Emails[email] = *new(struct{})
 	return nil
@@ -138,10 +139,10 @@ func AddUser(uid, pwd []byte, salt *sec.Salt, nick, email string) error {
 func DeleteUser(uid []byte) error {
 	db.Lock()
 	defer db.Unlock()
-	if _, ok := db.Users[string(uid)]; !ok {
+	if _, ok := db.Users[UidToString(uid)]; !ok {
 		return new(UserDoesNotExist)
 	}
-	delete(db.Users, string(uid))
+	delete(db.Users, UidToString(uid))
 	return nil
 }
 
@@ -149,7 +150,7 @@ func DeleteUser(uid []byte) error {
 func Exists(uid []byte) bool {
 	db.RLock()
 	defer db.RUnlock()
-	_, ok := db.Users[string(uid)]
+	_, ok := db.Users[UidToString(uid)]
 	return ok
 }
 
@@ -157,7 +158,7 @@ func Exists(uid []byte) bool {
 func Authenticate(uid, pswd []byte) bool {
 	db.RLock()
 	defer db.RUnlock()
-	user, ok := db.Users[string(uid)]
+	user, ok := db.Users[UidToString(uid)]
 	if !ok {
 		return false
 	} else {
@@ -173,7 +174,7 @@ func Authenticate(uid, pswd []byte) bool {
 func Login(uid, pswd []byte) (string, time.Time, error) {
 	db.RLock()
 	defer db.RUnlock()
-	user, ok := db.Users[string(uid)]
+	user, ok := db.Users[UidToString(uid)]
 	if !ok {
 		return "", time.Now(), new(UserDoesNotExist)
 	}
@@ -182,8 +183,8 @@ func Login(uid, pswd []byte) (string, time.Time, error) {
 	}
 	if len(user.Cookies) != 0 {
 		for i := 0; i < len(user.Cookies); i++ {
-			if user.Cookies[i].exp.After(time.Now()) {
-				return user.Cookies[i].cookie, user.Cookies[i].exp, nil
+			if user.Cookies[i].Exp.After(time.Now()) {
+				return user.Cookies[i].Cookie, user.Cookies[i].Exp, nil
 			}
 		}
 		c, err := newCookie()
@@ -191,14 +192,14 @@ func Login(uid, pswd []byte) (string, time.Time, error) {
 			return "", time.Now(), err
 		}
 		user.Cookies = append(user.Cookies, c)
-		return c.cookie, c.exp, nil
+		return c.Cookie, c.Exp, nil
 	} else {
 		c, err := newCookie()
 		if err != nil {
 			return "", time.Now(), err
 		}
 		user.Cookies = append(user.Cookies, c)
-		return user.Cookies[0].cookie, user.Cookies[0].exp, nil
+		return user.Cookies[0].Cookie, user.Cookies[0].Exp, nil
 	}
 }
 
@@ -206,21 +207,21 @@ func Login(uid, pswd []byte) (string, time.Time, error) {
 func Validate(cookie string, uid []byte) (bool, string, time.Time) {
 	db.RLock()
 	defer db.RUnlock()
-	user, ok := db.Users[string(uid)]
+	user, ok := db.Users[UidToString(uid)]
 	if !ok { //user does not exist
 		return false, "", time.Now()
 	}
 	for _, uCookie := range user.Cookies {
-		if uCookie.cookie == cookie {
-			if uCookie.replace.Before(time.Now()) &&
-				uCookie.exp.After(time.Now()) {
+		if uCookie.Cookie == cookie {
+			if uCookie.Replace.Before(time.Now()) &&
+				uCookie.Exp.After(time.Now()) {
 				uCookie, err := newCookie()
 				if err != nil {
 					return false, "", time.Now()
 				}
-				return true, uCookie.cookie, uCookie.exp
-			} else if uCookie.exp.After(time.Now()) {
-				return true, uCookie.cookie, uCookie.exp
+				return true, uCookie.Cookie, uCookie.Exp
+			} else if uCookie.Exp.After(time.Now()) {
+				return true, uCookie.Cookie, uCookie.Exp
 			}
 		}
 	}
@@ -231,7 +232,7 @@ func Validate(cookie string, uid []byte) (bool, string, time.Time) {
 func Nickname(uid []byte, cookie string) (string, error) {
 	db.RLock()
 	defer db.RUnlock()
-	user, ok := db.Users[string(uid)]
+	user, ok := db.Users[UidToString(uid)]
 	if !ok {
 		return "", new(UserDoesNotExist)
 	}
@@ -244,7 +245,7 @@ func Nickname(uid []byte, cookie string) (string, error) {
 //UpdatePassword changes the password of a given user
 func UpdatePassword(uid, pwd, nPwd []byte) error {
 	db.RLock()
-	user, ok := db.Users[string(uid)]
+	user, ok := db.Users[UidToString(uid)]
 	if !ok {
 		db.RUnlock()
 		return new(UserDoesNotExist)
@@ -264,7 +265,7 @@ func UpdatePassword(uid, pwd, nPwd []byte) error {
 //of a user and validated the cookie
 func UpdateNickname(uid []byte, cookie string, nickname string) error {
 	db.RLock()
-	user, ok := db.Users[string(uid)]
+	user, ok := db.Users[UidToString(uid)]
 	if !ok {
 		db.RUnlock()
 		return new(UserDoesNotExist)
@@ -283,7 +284,7 @@ func UpdateNickname(uid []byte, cookie string, nickname string) error {
 // removes all feeds from user’s account.
 func ResetUserFeeds(uid []byte) error {
 	db.RLock()
-	user, ok := db.Users[string(uid)]
+	user, ok := db.Users[UidToString(uid)]
 	db.RUnlock()
 	if !ok {
 		return new(UserDoesNotExist)
@@ -302,7 +303,7 @@ func Feeds(uid []byte) ([]*rss.Feed, error) {
 	}
 	db.RLock()
 	defer db.RUnlock()
-	user, _ := db.Users[string(uid)]
+	user, _ := db.Users[UidToString(uid)]
 	return user.Feeds, nil
 }
 
@@ -317,7 +318,7 @@ func AddFeeds(uid []byte, cookie string, urls ...string) error {
 	}
 	db.Lock()
 	defer db.Unlock()
-	user, _ := db.Users[string(uid)]
+	user, _ := db.Users[UidToString(uid)]
 	for _, url := range urls {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -373,6 +374,7 @@ func Backup(path string) error {
 	if err != nil {
 		return err
 	}
+	
 	buf := new(bytes.Buffer)
 	zipper := gzip.NewWriter(buf)
 	_, err = io.Copy(zipper, new(Database))
@@ -382,6 +384,9 @@ func Backup(path string) error {
 	zipper.Close()
 	compressed := new(bytes.Buffer)
 	_, err = io.Copy(compressed, buf)
+	if err != nil {
+		return err
+	}
 
 	//	fmt.Println(buf.Bytes())
 	var key, iv []byte
@@ -401,13 +406,19 @@ func Backup(path string) error {
 		if err != nil {
 			return err
 		}
-		newKeyFile.Write(key)
+		_, err = newKeyFile.Write(key)
+		if err != nil {
+			return err
+		}
 		newKeyFile.Close()
 		ivFile, err := os.Create("database/iv.key")
 		if err != nil {
 			return err
 		}
-		ivFile.Write(iv)
+		_, err = ivFile.Write(iv)
+		if err != nil {
+			return err
+		}
 		ivFile.Close()
 	} else {
 		key = make([]byte, 32)
@@ -505,8 +516,24 @@ func fromJson(data []byte) error {
 	if err != nil {
 		return err
 	}
+	for _, user := range db.Users {
+		user.mutex = new(sync.RWMutex)
+	}
 	db.RWMutex = new(sync.RWMutex)
 	return nil
+}
+
+func UidToString(uid []byte) string {
+	return base64.URLEncoding.EncodeToString(uid)
+}
+
+func StringToUid(s string) ([]byte, error) {
+	uidBytes := make([]byte, base64.URLEncoding.DecodedLen(len(s)))
+	n, err := base64.URLEncoding.Decode(uidBytes, []byte(s))
+	if err != nil {
+		return nil, err
+	}
+	return uidBytes[:n], nil
 }
 
 /*

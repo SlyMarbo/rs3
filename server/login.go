@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -92,7 +91,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	uidBytes := base64.URLEncoding.EncodeToString(uid)
+	uidBytes := database.UidToString(uid)
 	
 	// Add the uid and auth cookies.
 	w.Header().Add("Set-Cookie", fmt.Sprintf("uid=%q; Expires=%s; Secure; HttpOnly",

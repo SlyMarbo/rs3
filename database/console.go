@@ -77,12 +77,18 @@ func Console() {
 		// Backup database.
 		case tokens[0] == "backup":
 			target := tokens[1]
-			Backup(target)
+			err := Backup(target)
+			if err != nil {
+				fmt.Println("Backup error: ", err)
+			}
 			
 		// Restore database.
 		case tokens[0] == "restore":
 			origin := tokens[1]
-			Restore(origin)
+			err := Restore(origin)
+			if err != nil {
+				fmt.Println("Restore error: ", err)
+			}
 			
 		// Cache content file.
 		case tokens[0] == "cache":

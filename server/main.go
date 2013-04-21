@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,14 +14,12 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
 		Login(w, r)
 		return
 	}
-	uidBytes := make([]byte, base64.URLEncoding.DecodedLen(len(uid.Value)))
-	n, err := base64.URLEncoding.Decode(uidBytes, []byte(uid.Value))
+	uidBytes, err := database.StringToUid(uid.Value)
 	if err != nil {
 		fmt.Println("failed to parse cookie")
 		Login(w, r)
 		return
 	}
-	uidBytes = uidBytes[:n]
 	auth, err := r.Cookie("auth")
 	if err != nil {
 		fmt.Println("no auth cookie")
