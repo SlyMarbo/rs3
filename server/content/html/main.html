@@ -4,45 +4,37 @@
 		<link rel="shortcut icon" href="/content/images/favicon.ico" />
 		<link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
 		<style>
-		#loginbox {
-			margin: auto;
-			margin-top: 100px;
-			width: 300px;
-			height: 300px;
-		}
-		#login {
-			margin: auto;
-		}
-		#logo {
-			margin: auto;
-			height: 140px;
-		}
-		#loginbutton {
-			width: 80px;
-		}
-		h1 {
+		#navbar {
+			background-image: -ms-linear-gradient(top left, #FFFFFF 0%, #757F82 100%);
+			background-image: -moz-linear-gradient(top left, #FFFFFF 0%, #757F82 100%);
+			background-image: -o-linear-gradient(top left, #FFFFFF 0%, #757F82 100%);
+			background-image: -webkit-gradient(linear, left top, right bottom, color-stop(0, #FFFFFF), color-stop(1, #757F82));
+			background-image: -webkit-linear-gradient(top left, #FFFFFF 0%, #757F82 100%);
+			background-image: linear-gradient(to bottom right, #FFFFFF 0%, #757F82 100%);
+			
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
 			margin: 0;
-			line-height: 120px;
-			display: inline;
-			font-size: 60pt;
 		}
-		input {
-			width: 300px;
+		#title {
+			margin: 0;
+			display: inline;
+			font-size: 38pt;
+			line-height: 50px;
 		}
 		img {
-			float: right;
+			vertical-align: top;
 		}
 		</style>
 	</head>
 	<body>
-		<div id="loginbox">
-			<div id="logo">
-				<h1>RS3</h1>
-				<img src="/images/logo.png" alt="RS3 logo" width="125" height="125">
-			</div>
-			<div id="login">
-				Sup.
-			</div>
+		<div class="row" id="navbar">
+			<!-- <div class="span12"> -->
+				<div id="title">RS3</h1>
+				<img src="/images/logo_50.png" alt="RS3 logo">
+			<!-- </div> -->
 		</div>
 	</body>
 </html>
