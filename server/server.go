@@ -105,8 +105,8 @@ func serveCSS(w http.ResponseWriter, r *http.Request, s string) {
 	w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
 	_, err = io.Copy(w, file)
 	if err != nil {
-		log.Println("Failed to send", s)
-		log.Println(err)
+		fmt.Println("Failed to send", s)
+		fmt.Println(err)
 		return
 	}
 }
@@ -145,8 +145,8 @@ func serveJS(w http.ResponseWriter, r *http.Request, s string) {
 	w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
 	_, err = io.Copy(w, file)
 	if err != nil {
-		log.Println("Failed to send", s)
-		log.Println(err)
+		fmt.Println("Failed to send", s)
+		fmt.Println(err)
 		return
 	}
 }
@@ -168,8 +168,8 @@ func serveImage(w http.ResponseWriter, r *http.Request, s string) {
 	w.Header().Add("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
 	_, err = io.Copy(w, file)
 	if err != nil {
-		log.Println("Failed to send", s)
-		log.Println(err)
+		fmt.Println("Failed to send", s)
+		fmt.Println(err)
 		return
 	}
 }

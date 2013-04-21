@@ -1,9 +1,9 @@
 package server
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,15 +21,15 @@ func serveLogin(w http.ResponseWriter, r *http.Request, failed bool) {
 	}
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Println("Failed to open login.html:")
-		log.Println(err)
+		fmt.Println("Failed to open login.html:")
+		fmt.Println(err)
 		return
 	}
 	
 	_, err = w.Write(data)
 	if err != nil {
-		log.Println("Failed to send login.html:")
-		log.Println(err)
+		fmt.Println("Failed to send login.html:")
+		fmt.Println(err)
 		return
 	}
 }
@@ -37,8 +37,8 @@ func serveLogin(w http.ResponseWriter, r *http.Request, failed bool) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println("Error reading from login request:")
-		log.Println(err)
+		fmt.Println("Error reading from login request:")
+		fmt.Println(err)
 		http.Error(w, "Could not read request body.", 400)
 		return
 	}
@@ -64,7 +64,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	
 	username := matches[0][1]
 	password := matches[0][2]
-	fmt.Printf("Found login attempt: %q, %q.\n", username, password)
 	salt := database.Salt(username)
 	if salt == nil {
 		fmt.Printf("User %q does not exist.\n", username)
@@ -93,17 +92,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	fmt.Println("Login successful")
+	uidBytes := base64.URLEncoding.EncodeToString(uid)
 	
 	// Add the uid and auth cookies.
-	w.Header().Add("Set-Cookie", fmt.Sprintf("uid=%s; Expires=%s; Secure; HttpOnly", string(uid),
-		expiry.UTC().Format(http.TimeFormat)))
-	w.Header().Add("Set-Cookie", fmt.Sprintf("auth=%s; Expires=%s; Secure; HttpOnly", cookie,
+	w.Header().Add("Set-Cookie", fmt.Sprintf("uid=%q; Expires=%s; Secure; HttpOnly",
+		uidBytes, expiry.UTC().Format(http.TimeFormat)))
+	w.Header().Add("Set-Cookie", fmt.Sprintf("auth=%q; Expires=%s; Secure; HttpOnly", cookie,
 		expiry.UTC().Format(http.TimeFormat)))
 	
-	r.Header.Add("Set-Cookie", fmt.Sprintf("uid=%s; Expires=%s; Secure; HttpOnly", string(uid),
-		expiry.UTC().Format(http.TimeFormat)))
-	r.Header.Add("Set-Cookie", fmt.Sprintf("auth=%s; Expires=%s; Secure; HttpOnly", cookie,
+	r.Header.Add("Set-Cookie", fmt.Sprintf("uid=%q; Expires=%s; Secure; HttpOnly",
+		uidBytes, expiry.UTC().Format(http.TimeFormat)))
+	r.Header.Add("Set-Cookie", fmt.Sprintf("auth=%q; Expires=%s; Secure; HttpOnly", cookie,
 		expiry.UTC().Format(http.TimeFormat)))
 	
 	if r.URL.Path == "/" || r.URL.Path == "/index.html" {

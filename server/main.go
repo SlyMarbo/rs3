@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"rs3/database"
 )
@@ -9,47 +11,50 @@ import (
 func ServeMain(w http.ResponseWriter, r *http.Request) {
 	uid, err := r.Cookie("uid")
 	if err != nil {
+		fmt.Println("no uid cookie")
 		Login(w, r)
 		return
 	}
+	uidBytes := make([]byte, base64.URLEncoding.DecodedLen(len(uid.Value)))
+	n, err := base64.URLEncoding.Decode(uidBytes, []byte(uid.Value))
+	if err != nil {
+		fmt.Println("failed to parse cookie")
+		Login(w, r)
+		return
+	}
+	uidBytes = uidBytes[:n]
 	auth, err := r.Cookie("auth")
 	if err != nil {
+		fmt.Println("no auth cookie")
 		Login(w, r)
 		return
 	}
 	
-	if !uid.Secure || !uid.HttpOnly || !auth.Secure || !auth.HttpOnly {
-		fmt.Println("A cookie is not secure and/or HTTP only.")
-		fmt.Println(uid)
-		fmt.Println(auth)
-		http.Error(w, "Invalid cookies", 401)
-		return
-	}
-	
-	valid, cookie, expiry := database.Validate(auth, []byte(uid))
+	valid, cookie, expiry := database.Validate(auth.Value, uidBytes)
 	if !valid {
+		fmt.Println("cookie not valid")
 		Login(w, r)
 		return
 	}
 	
-	if cookie != auth {
-		w.Header().Add("Set-Cookie", fmt.Sprintf("auth=%s; Expires=%s; Secure; HttpOnly", cookie,
+	if cookie != auth.Value {
+		w.Header().Add("Set-Cookie", fmt.Sprintf("auth=%q; Expires=%s; Secure; HttpOnly", cookie,
 			expiry.UTC().Format(http.TimeFormat)))
-		r.Header.Add("Set-Cookie", fmt.Sprintf("auth=%s; Expires=%s; Secure; HttpOnly", cookie,
+		r.Header.Add("Set-Cookie", fmt.Sprintf("auth=%q; Expires=%s; Secure; HttpOnly", cookie,
 			expiry.UTC().Format(http.TimeFormat)))
 	}
 	
 	data, err := ioutil.ReadFile("server/content/html/main.html")
 	if err != nil {
-		log.Println("Failed to open main.html:")
-		log.Println(err)
+		fmt.Println("Failed to open main.html:")
+		fmt.Println(err)
 		return
 	}
 	
 	_, err = w.Write(data)
 	if err != nil {
-		log.Println("Failed to send main.html:")
-		log.Println(err)
+		fmt.Println("Failed to send main.html:")
+		fmt.Println(err)
 		return
 	}
 }

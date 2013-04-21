@@ -214,7 +214,10 @@ func Validate(cookie string, uid []byte) (bool, string, time.Time) {
 		if uCookie.cookie == cookie {
 			if uCookie.replace.Before(time.Now()) &&
 				uCookie.exp.After(time.Now()) {
-				uCookie = newCookie()
+				uCookie, err := newCookie()
+				if err != nil {
+					return false, "", time.Now()
+				}
 				return true, uCookie.cookie, uCookie.exp
 			} else if uCookie.exp.After(time.Now()) {
 				return true, uCookie.cookie, uCookie.exp
@@ -232,7 +235,7 @@ func Nickname(uid []byte, cookie string) (string, error) {
 	if !ok {
 		return "", new(UserDoesNotExist)
 	}
-	if !Validate(cookie, uid) {
+	if ok, _, _ := Validate(cookie, uid); !ok {
 		return "", new(AuthenticationError)
 	}
 	return user.Nick, nil
@@ -266,7 +269,7 @@ func UpdateNickname(uid []byte, cookie string, nickname string) error {
 		db.RUnlock()
 		return new(UserDoesNotExist)
 	}
-	if !Validate(cookie, uid) {
+	if ok, _, _ := Validate(cookie, uid); !ok {
 		db.RUnlock()
 		return new(AuthenticationError)
 	}

@@ -48,6 +48,7 @@ func (c *Config) ListenAndServe() error {
 
 	go server.ServeHTTP(c.Domain)
 	go server.ServeHTTPS(c.Domain, c.CertPath, c.KeyPath)
+	fmt.Println("Serving " + c.Domain)
 	database.Console()
 	return nil
 }
