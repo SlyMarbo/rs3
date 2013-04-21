@@ -460,6 +460,9 @@ func Backup(path string) error {
 	encrypter.CryptBlocks(data, data)
 	//	_, err = io.Copy(buf, new(Database))
 	_, err = io.Copy(f, bytes.NewBuffer(data)) //f.Write(compressed.Bytes())
+	if err == nil {
+		return nil
+	}
 	return bErr.Append(err)
 }
 
@@ -504,6 +507,9 @@ func Restore(path string) error {
 	}
 	unzipper.Close()
 	_, err = io.Copy(new(Database), unzipper)
+	if err == nil {
+		return nil
+	}
 
 	return rErr.Append(err)
 }
