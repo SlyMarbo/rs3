@@ -12,7 +12,6 @@ import (
 	"github.com/SlyMarbo/rss"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	sec "rs3/security"
 	"sync"
@@ -319,15 +318,7 @@ func AddFeeds(uid []byte, cookie string, urls ...string) error {
 	defer db.Unlock()
 	user, _ := db.Users[UidToString(uid)]
 	for _, url := range urls {
-		resp, err := http.Get(url)
-		if err != nil {
-			return err
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		feed, err := rss.Parse(body)
+		feed, err := rss.Fetch(url)
 		if err != nil {
 			return nil
 		}

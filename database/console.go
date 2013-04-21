@@ -22,25 +22,42 @@ func Console() {
 			
 		// Add user.
 		case tokens[0] == "add":
-			username := tokens[1]
-			password := tokens[2]
-			nickname := tokens[3]
-			salt := security.NewSalt()
+			if tokens[1] == "user" {
+				username := tokens[2]
+				password := tokens[3]
+				nickname := tokens[4]
+				salt := security.NewSalt()
 			
-			uid, err := security.Hash(username, salt)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error: failed to hash username.")
+				uid, err := security.Hash(username, salt)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Error: failed to hash username.")
+				}
+			
+				pwd, err := security.Hash(password, salt)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Error: failed to hash username.")
+				}
+			
+				err = AddUser(uid, pwd, salt, nickname, username)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err.Error())
+				}
+			} else if tokens[1] == "feed" {
+				uid, err := StringToUid(tokens[2])
+				if err != nil {
+					fmt.Println("Error parsing uid:")
+					fmt.Println(err)
+				}
+				cookie := tokens[3]
+				feed   := tokens[4]
+				
+				err = AddFeeds(uid, cookie, feed)
+				if err != nil {
+					fmt.Println("Error adding feed:")
+					fmt.Println(err)
+				}
 			}
 			
-			pwd, err := security.Hash(password, salt)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error: failed to hash username.")
-			}
-			
-			err = AddUser(uid, pwd, salt, nickname, username)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-			}
 			
 		// Remove user.
 		case tokens[0] == "remove":
@@ -55,6 +72,53 @@ func Console() {
 			err = DeleteUser(uid)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err.Error())
+			}
+			
+		// Check a user's feeds.
+		case tokens[0] == "feeds":
+			uid := tokens[1]
+			user, ok := db.Users[uid]
+			if ok {
+				sum := 0
+				for _, feed := range user.Feeds {
+					fmt.Println(feed)
+					sum += int(feed.Unread)
+				}
+				fmt.Printf("\n\nTotal feeds:  %3d\nUnread items: %3d\n", len(user.Feeds), sum)
+			} else {
+				fmt.Println("Error: could not find user.")
+			}
+			
+		// Reset a user's feeds.
+		case tokens[0] == "reset":
+			uid, err := StringToUid(tokens[1])
+			if err != nil {
+				fmt.Println("Failed to parse uid:")
+				fmt.Println(err)
+			}
+			err = ResetUserFeeds(uid)
+			if err != nil {
+				fmt.Println("Failed to reset feeds:")
+				fmt.Println(err)
+			}
+			
+		// Update a user's feeds.
+		case tokens[0] == "update":
+			uid := tokens[1]
+			user, ok := db.Users[uid]
+			if ok {
+				for _, feed := range user.Feeds {
+					start := feed.Unread
+					err := feed.Update()
+					if err != nil {
+						fmt.Println("Error while updating feed:")
+						fmt.Println(err)
+						break
+					}
+					fmt.Printf("%d new items for feed %q.\n", feed.Unread-start, feed.Title)
+				}
+			} else {
+				fmt.Println("Error: could not find user.")
 			}
 			
 		// Debug.
