@@ -215,7 +215,7 @@ var files = []string{"server/content/html/main.html",
 
 var jsDataString = `
 $(".invis").on('activate', function() {
-   console.log($('#' + $("li.active").attr('id').substring(5))[0]);
+   $('#' + $("li.active").attr('id').substring(5)).addClass('read');
 });
 var data = %s;
 $('.feed').click(function() {
