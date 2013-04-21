@@ -64,10 +64,11 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
   }
 
   // Go through the user's feeds.
+	var first string
   feeds, err := database.Feeds(uidBytes)
   if err != nil {
     fmt.Println("Failed to get feeds.")
-    Template.UnreadZero = "unread zero"
+    Template.UnreadZero = "unread_zero"
   } else {
     feedItems := make([]*FeedListItem, 0, len(feeds))
     itemItems := make([]*ItemListItem, 0, 10)
@@ -77,6 +78,7 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
     for i, feed := range feeds {
       unread += int(feed.Unread)
       if i == 0 {
+				first = feed.Title
         feedItems = append(feedItems, &FeedListItem{feed.Title, " active"})
       } else {
         feedItems = append(feedItems, &FeedListItem{feed.Title, ""})
@@ -84,9 +86,9 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
       jsItems := make([]*JSItem, 0, 10)
       for j, item := range feed.Items {
         if i == 0 {
-          itemItems = append(itemItems, &ItemListItem{item.Title, item.Content, feed.Title, j+1})
+          itemItems = append(itemItems, &ItemListItem{item.Title, item.Content, feed.Title, j})
         }
-        jsItems = append(jsItems, &JSItem{item.Title, item.Content, feed.Title})
+        jsItems = append(jsItems, &JSItem{item.Title, item.Content, feed.Title, false})
       }
       jsData.Items[feed.Title] = jsItems
     }
@@ -148,7 +150,7 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
     if err != nil {
       fmt.Println("Failed to parse item list items.")
     } else {
-      Template.JSData = template.JS(fmt.Sprintf(jsDataString, string(b)))
+      Template.JSData = template.JS(fmt.Sprintf(jsDataString, string(b), first))
     }
   }
 
@@ -205,6 +207,7 @@ type JSItem struct {
   Title   string
   Content string
   Source  string
+	Read    bool
 }
 
 var files = []string{"server/content/html/main.html",
@@ -214,16 +217,25 @@ var files = []string{"server/content/html/main.html",
 }
 
 var jsDataString = `
-$(".invis").on('activate', function() {
-   $('#' + $("li.active").attr('id').substring(5)).addClass('read');
-});
+var refresh = function refresh() {
+	$(".invis").on('activate', function() {
+		var id = $("li.active").attr('id').substring(5);
+	  $('#' + id).addClass('read');
+		data[currentFeed][parseInt(id, 10)]['Read'] = true;
+	});
+}
+
 var data = %s;
+var currentFeed = %q;
 $('.feed').click(function() {
 	var feed = $(this)[0].innerText.replace(/\s\s*$/, '');
+	currentFeed = feed;
 	var out = [];
+	var invis = [];
 	var len = data[feed].length;
 	for (var i = 0; i < len; ++i) {
 		var item = data[feed][i]
+		if (item['Read']) continue;
 		out.push('<li><div class="item"><h3>')
 		out.push(item['Title'])
 		out.push('</h3><p>')
@@ -231,10 +243,24 @@ $('.feed').click(function() {
 		out.push('</p><p class="text-right"><small>')
 		out.push(item['Source'])
 		out.push('</small></p></div></li>')
+		
+		invis.push('<li id="node_');
+		invis.push(i.toString());
+		invis.push('"><a href="#');
+		invis.push(i.toString());
+		invis.push('">');
+		invis.push(i.toString());
+		invis.push('</a></li>');
 	}
 	$('#items').html(out.join(''));
+	$('#invisinsert').html(invis.join(''));
 	$('.active').removeClass('active')
 	$(this).addClass('active')
-	//console.log(data[feed]);
+	$('.item').each(function () {
+	  $(this).scrollspy('refresh')
+	});
+	$('#items').scrollTop(0);
+	refresh();
 });
+refresh();
 `

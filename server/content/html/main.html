@@ -17,6 +17,7 @@
 			background-image: linear-gradient(to bottom right, #FFFFFF 0%, #757F82 100%);
 			
 			position: fixed;
+			z-index: 99;
 			top: 0;
 			left: 0;
 			width: 100%;
@@ -33,6 +34,7 @@
 			padding-top: 70px;
 			display: block;
 			position: absolute;
+			z-index: 10;
 			top: 0;
 			left: 0;
 			right: 0;
@@ -75,7 +77,10 @@
 			background-color: #ccc;
 		}
 		.item.read {
-			background-color: green;
+			color: #ccc;
+		}
+		.item.read:hover {
+			background-color: #ddd;
 		}
 		#nickname {
 			float: right;
@@ -86,8 +91,8 @@
 			padding-right: 5px;
 		}
 		.unread {
-			z-index: 100;
 			position: relative;
+			z-index: 100;
 			float: right;
 			margin: -5px 10px;
 			padding: 0;
@@ -104,11 +109,11 @@
 			text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
 			background-color: #da4f49;
 		  *background-color: #bd362f;
-		  background-image: -moz-linear-gradient(top, #ee5f5b, #bd362f);
-		  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ee5f5b), to(#bd362f));
-		  background-image: -webkit-linear-gradient(top, #ee5f5b, #bd362f);
-		  background-image: -o-linear-gradient(top, #ee5f5b, #bd362f);
-		  background-image: linear-gradient(to bottom, #ee5f5b, #bd362f);
+		  background-image: -moz-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
+		  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgb(238, 95, 91)), to(rgb(189, 54, 47)));
+		  background-image: -webkit-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
+		  background-image: -o-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
+		  background-image: linear-gradient(to bottom, rgb(238, 95, 91), rgb(189, 54, 47));
 		  background-repeat: repeat-x;
 			border: 1px solid #cccccc;
 			-webkit-border-radius: 4px;
@@ -116,21 +121,47 @@
 			border-radius: 25px;
 		  border-color: #bd362f #bd362f #802420;
 		  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
-			-webkit-transition: background-position 0.1s linear;
-			-moz-transition: background-position 0.1s linear;
-			-o-transition: background-position 0.1s linear;
-			transition: background-position 0.1s linear;
 		}
 		.unread:hover {
-			-webkit-transition: background-position 0.1s linear;
-			-moz-transition: background-position 0.1s linear;
-			-o-transition: background-position 0.1s linear;
-			transition: background-position 0.1s linear;
 			background-color: #bd362f;
 			*background-color: #a9302a;
+		  background-image: -moz-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
+		  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgb(238, 95, 91)), to(rgb(189, 54, 47)));
+		  background-image: -webkit-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
+		  background-image: -o-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
+		  background-image: linear-gradient(to bottom, rgb(238, 95, 91), rgb(189, 54, 47));
 		}
-		.unread.zero {
-			background-color: white;
+		.unread_zero {
+
+			position: relative;
+			z-index: 100;
+			float: right;
+			margin: -5px 10px;
+			padding: 0;
+			width: 28px;
+			height: 28px;
+			text-align: center;
+			line-height: 28px;
+			-moz-box-shadow: 0 0 8px 8px #888;
+			-webkit-box-shadow: 0 0 8px 8px #888;
+			box-shadow: 0 0 8px 8px #888;
+			cursor: pointer;
+			
+			text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+			background-color: #fff;
+		  *background-color: #e6e6e6;
+		  background-image: -moz-linear-gradient(top, #fff, #e6e6e6);
+		  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
+		  background-image: -webkit-linear-gradient(top, #fff, #e6e6e6);
+		  background-image: -o-linear-gradient(top, #fff, #e6e6e6);
+		  background-image: linear-gradient(to bottom, #fff, #e6e6e6);
+		  background-repeat: repeat-x;
+			border: 1px solid #cccccc;
+			-webkit-border-radius: 4px;
+			-moz-border-radius: 4px;
+			border-radius: 25px;
+		  border-color: #bd362f #bd362f #802420;
+		  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
 			color: black;
 		}
 		img {
@@ -150,7 +181,7 @@
 	<body>
 		<div class="invis" style="position:fixed;top:0;display:none;">
 		  <div class="navbar-inner">
-		    <ul class="nav">
+		    <ul class="nav" id="invisinsert">
 		      {{.Invis}}
 		    </ul>
 		  </div>
