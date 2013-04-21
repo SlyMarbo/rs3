@@ -402,11 +402,13 @@ func Backup(path string) error {
 			return err
 		}
 		newKeyFile.Write(key)
+		newKeyFile.Close()
 		ivFile, err := os.Create("database/iv.key")
 		if err != nil {
 			return err
 		}
 		ivFile.Write(iv)
+		ivFile.Close()
 	} else {
 		key = make([]byte, 32)
 		key, err = ioutil.ReadFile("database/backup.key")
