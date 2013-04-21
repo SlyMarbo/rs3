@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
   "fmt"
 	"html/template"
-  "io/ioutil"
   "net/http"
   "rs3/database"
 	"strings"
@@ -44,20 +43,14 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
       expiry.UTC().Format(http.TimeFormat)))
   }
 
-  nickname, err := database.Nickname(uidBytes, auth.Value)
+	Template := new(MainTemplate)
+  Template.Nickname, err = database.Nickname(uidBytes, auth.Value)
   if err != nil {
     fmt.Println("Failed to get nickname.")
-    nickname = "[UNKNOWN]"
+    Template.Nickname = "[UNKNOWN]"
   }
 
-  data, err := ioutil.ReadFile("server/content/html/main.html")
-  if err != nil {
-    fmt.Println("Failed to open main.html:")
-    fmt.Println(err)
-    return
-  }
-
-	t, err := template.New("main").Parse(string(data))
+	t, err := template.ParseFiles("server/content/html/main.html")
 	if err != nil {
 		fmt.Println("Failed to parse template.")
 		fmt.Println(err)
@@ -67,7 +60,7 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.Header().Add("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 	if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		err = t.ExecuteTemplate(w, "T", nickname)
+		err = t.ExecuteTemplate(w, "main.html", Template)
 		if err != nil {
 			fmt.Println("Failed to execute template.")
 			fmt.Println(err)
@@ -76,7 +69,7 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Set("Content-Encoding", "gzip")
 		gz := gzip.NewWriter(w)
-		err = t.ExecuteTemplate(gz, "T", nickname)
+		err = t.ExecuteTemplate(gz, "main.html", Template)
 		if err != nil {
 			fmt.Println("Failed to execute template.")
 			fmt.Println(err)
@@ -84,4 +77,8 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
 		}
 		gz.Close()
 	}
+}
+
+type MainTemplate struct {
+	Nickname string
 }
