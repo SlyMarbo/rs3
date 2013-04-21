@@ -6,3 +6,8 @@
 *.key
 
 *.pem
+
+#emacs temp buffers
+*~
+[#]*[#]
+.\#*
