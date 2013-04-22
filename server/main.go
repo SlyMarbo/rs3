@@ -34,7 +34,6 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
 
   valid, cookie, expiry := database.Validate(auth.Value, uidBytes)
   if !valid {
-    fmt.Println("cookie not valid")
     Login(w, r)
     return
   }
@@ -99,7 +98,7 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
     if unread > 0 {
       Template.UnreadZero = "unread"
     } else {
-      Template.UnreadZero = "unread zero"
+      Template.UnreadZero = "unread_zero"
     }
 
     // Construct feeds list.
@@ -157,7 +156,7 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Internal server error", 500)
 				return
 			}
-      Template.JSData = template.JS(fmt.Sprintf(string(jsDataBytes), string(b), first))
+      Template.JSData = template.JS(fmt.Sprintf(string(jsDataBytes), string(b), first, Template.Unread))
     }
   }
 

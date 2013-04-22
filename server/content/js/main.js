@@ -2,12 +2,19 @@ var refresh = function refresh() {
 	$(".invis").on('activate', function() {
 		var id = $("li.active").attr('id').substring(5);
 	  $('#' + id).addClass('read');
-		data[currentFeed][parseInt(id, 10)]['Read'] = true;
+		var item = data[currentFeed][parseInt(id, 10)];
+		if (!item.Read) {
+			item.Read = true;
+			--unread;
+			if (unread == 0) $('#unread').html(unread).removeClass('unread').addClass('unread_zero');
+			else $('#unread').html(unread);
+		}
 	});
 }
 
 var data = %s;
 var currentFeed = %q;
+var unread = %d;
 $('.feed').click(function() {
 	var feed = $(this)[0].innerText.replace(/\s\s*$/, '');
 	currentFeed = feed;

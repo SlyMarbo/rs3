@@ -84,10 +84,12 @@
 		}
 		#nickname {
 			float: right;
-			width: 120px;
+			width: 250px;
 			padding: 15px;
 		}
 		.nick {
+			cursor: default;
+			float: right;
 			padding-right: 5px;
 		}
 		.unread {
@@ -98,41 +100,46 @@
 			padding: 0;
 			width: 28px;
 			height: 28px;
-			color: white;
 			text-align: center;
 			line-height: 28px;
-			-moz-box-shadow: 0 0 8px 8px #888;
-			-webkit-box-shadow: 0 0 8px 8px #888;
-			box-shadow: 0 0 8px 8px #888;
-			cursor: pointer;
+			color: #fff;
 			
 			text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
 			background-color: #da4f49;
-		  *background-color: #bd362f;
-		  background-image: -moz-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
-		  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgb(238, 95, 91)), to(rgb(189, 54, 47)));
-		  background-image: -webkit-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
-		  background-image: -o-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
-		  background-image: linear-gradient(to bottom, rgb(238, 95, 91), rgb(189, 54, 47));
-		  background-repeat: repeat-x;
+			*background-color: #bd362f;
+			background-image: -moz-linear-gradient(top, #ee5f5b, #bd362f);
+			background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ee5f5b), to(#bd362f));
+			background-image: -webkit-linear-gradient(top, #ee5f5b, #bd362f);
+			background-image: -o-linear-gradient(top, #ee5f5b, #bd362f);
+			background-image: linear-gradient(to bottom, #ee5f5b, #bd362f);
+			background-repeat: repeat-x;
 			border: 1px solid #cccccc;
-			-webkit-border-radius: 4px;
-			-moz-border-radius: 4px;
-			border-radius: 25px;
+			*border: 0;
 		  border-color: #bd362f #bd362f #802420;
 		  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+			-webkit-border-radius: 25px;
+			-moz-border-radius: 25px;
+			border-radius: 25px;
+			cursor: default;
+			
+			-o-transition: all 750ms ease;
+			-ms-transition: all 750ms ease;
+			-moz-transition: all 750ms ease;
+			-webkit-transition: all 750ms ease;
+			transition: all 750ms ease;
+			-moz-box-shadow: 0 0 10px #111111;
+			-webkit-box-shadow: 0 0 10px #111111;
+			box-shadow: 0 0 10px #111111;
 		}
 		.unread:hover {
 			background-color: #bd362f;
 			*background-color: #a9302a;
-		  background-image: -moz-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
-		  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgb(238, 95, 91)), to(rgb(189, 54, 47)));
-		  background-image: -webkit-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
-		  background-image: -o-linear-gradient(top, rgb(238, 95, 91), rgb(189, 54, 47));
-		  background-image: linear-gradient(to bottom, rgb(238, 95, 91), rgb(189, 54, 47));
+			text-decoration: none;
+			-moz-box-shadow: 0 0 30px #111111;
+			-webkit-box-shadow: 0 0 30px #111111;
+			box-shadow: 0 0 30px #111111;
 		}
 		.unread_zero {
-
 			position: relative;
 			z-index: 100;
 			float: right;
@@ -142,27 +149,43 @@
 			height: 28px;
 			text-align: center;
 			line-height: 28px;
-			-moz-box-shadow: 0 0 8px 8px #888;
-			-webkit-box-shadow: 0 0 8px 8px #888;
-			box-shadow: 0 0 8px 8px #888;
-			cursor: pointer;
+			color: #333;
 			
 			text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-			background-color: #fff;
-		  *background-color: #e6e6e6;
-		  background-image: -moz-linear-gradient(top, #fff, #e6e6e6);
-		  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
-		  background-image: -webkit-linear-gradient(top, #fff, #e6e6e6);
-		  background-image: -o-linear-gradient(top, #fff, #e6e6e6);
-		  background-image: linear-gradient(to bottom, #fff, #e6e6e6);
-		  background-repeat: repeat-x;
+			background-color: #f5f5f5;
+			*background-color: #e6e6e6;
+			background-image: -moz-linear-gradient(top, #ffffff, #e6e6e6);
+			background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff), to(#e6e6e6));
+			background-image: -webkit-linear-gradient(top, #ffffff, #e6e6e6);
+			background-image: -o-linear-gradient(top, #ffffff, #e6e6e6);
+			background-image: linear-gradient(to bottom, #ffffff, #e6e6e6);
+			background-repeat: repeat-x;
 			border: 1px solid #cccccc;
-			-webkit-border-radius: 4px;
-			-moz-border-radius: 4px;
+			*border: 0;
+			border-color: #e6e6e6 #e6e6e6 #bfbfbf;
+			border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+			border-bottom-color: #b3b3b3;
+			-webkit-border-radius: 25px;
+			-moz-border-radius: 25px;
 			border-radius: 25px;
-		  border-color: #bd362f #bd362f #802420;
-		  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
-			color: black;
+			cursor: default;
+			
+			-o-transition: all 750ms ease;
+			-ms-transition: all 750ms ease;
+			-moz-transition: all 750ms ease;
+			-webkit-transition: all 750ms ease;
+			transition: all 750ms ease;
+			-moz-box-shadow: 0 0 10px #111111;
+			-webkit-box-shadow: 0 0 10px #111111;
+			box-shadow: 0 0 10px #111111;
+		}
+		.unread_zero:hover {
+			background-color: #e6e6e6;
+			*background-color: #d9d9d9;
+			text-decoration: none;
+			-moz-box-shadow: 0 0 30px #111111;
+			-webkit-box-shadow: 0 0 30px #111111;
+			box-shadow: 0 0 30px #111111;
 		}
 		img {
 			vertical-align: top;
@@ -190,9 +213,8 @@
 			<div id="title">RS3</div>
 			<img src="/images/logo_50.png" alt="RS3 logo">
 			<div id="nickname">
-				<i class="icon-user"></i>
-				<span class="nick"> {{.Nickname}}</span>
 				<div class="{{.UnreadZero}}" id="unread">{{.Unread}}</div>
+				<span class="nick"><i class="icon-user"></i> {{.Nickname}}</span>
 			</div>
 		</div>
 		
