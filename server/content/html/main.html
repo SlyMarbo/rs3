@@ -28,6 +28,10 @@
 			display: inline;
 			font-size: 38pt;
 			line-height: 50px;
+			cursor: default;
+		}
+		#logout {
+			float: right;
 		}
 		#container {
 			padding: 20px;
@@ -85,7 +89,7 @@
 		#nickname {
 			float: right;
 			width: 250px;
-			padding: 15px;
+			padding: 5px;
 		}
 		.nick {
 			cursor: default;
@@ -96,7 +100,7 @@
 			position: relative;
 			z-index: 100;
 			float: right;
-			margin: -5px 10px;
+			margin: 5px 10px;
 			padding: 0;
 			width: 28px;
 			height: 28px;
@@ -143,7 +147,7 @@
 			position: relative;
 			z-index: 100;
 			float: right;
-			margin: -5px 10px;
+			margin: 5px 10px;
 			padding: 0;
 			width: 28px;
 			height: 28px;
@@ -214,7 +218,8 @@
 			<img src="/images/logo_50.png" alt="RS3 logo">
 			<div id="nickname">
 				<div class="{{.UnreadZero}}" id="unread">{{.Unread}}</div>
-				<span class="nick"><i class="icon-user"></i> {{.Nickname}}</span>
+				<span class="nick"><i class="icon-user"></i> {{.Nickname}}<br />
+					<a href="/login"><small id="logout">Logout</small></a></span>
 			</div>
 		</div>
 		
