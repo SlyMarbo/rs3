@@ -6,6 +6,7 @@ import (
   "encoding/json"
   "fmt"
   "html/template"
+	"io/ioutil"
   "net/http"
   "rs3/database"
   "strings"
@@ -150,7 +151,13 @@ func ServeMain(w http.ResponseWriter, r *http.Request) {
     if err != nil {
       fmt.Println("Failed to parse item list items.")
     } else {
-      Template.JSData = template.JS(fmt.Sprintf(jsDataString, string(b), first))
+			jsDataBytes, err := ioutil.ReadFile("server/content/js/main.js")
+			if err != nil {
+				fmt.Println("Failed to read in JS template.")
+				http.Error(w, "Internal server error", 500)
+				return
+			}
+      Template.JSData = template.JS(fmt.Sprintf(string(jsDataBytes), string(b), first))
     }
   }
 
@@ -215,52 +222,3 @@ var files = []string{"server/content/html/main.html",
   "server/content/html/feeds_template.html",
   "server/content/html/invis_template.html",
 }
-
-var jsDataString = `
-var refresh = function refresh() {
-	$(".invis").on('activate', function() {
-		var id = $("li.active").attr('id').substring(5);
-	  $('#' + id).addClass('read');
-		data[currentFeed][parseInt(id, 10)]['Read'] = true;
-	});
-}
-
-var data = %s;
-var currentFeed = %q;
-$('.feed').click(function() {
-	var feed = $(this)[0].innerText.replace(/\s\s*$/, '');
-	currentFeed = feed;
-	var out = [];
-	var invis = [];
-	var len = data[feed].length;
-	for (var i = 0; i < len; ++i) {
-		var item = data[feed][i]
-		if (item['Read']) continue;
-		out.push('<li><div class="item"><h3>')
-		out.push(item['Title'])
-		out.push('</h3><p>')
-		out.push(item['Content'])
-		out.push('</p><p class="text-right"><small>')
-		out.push(item['Source'])
-		out.push('</small></p></div></li>')
-		
-		invis.push('<li id="node_');
-		invis.push(i.toString());
-		invis.push('"><a href="#');
-		invis.push(i.toString());
-		invis.push('">');
-		invis.push(i.toString());
-		invis.push('</a></li>');
-	}
-	$('#items').html(out.join(''));
-	$('#invisinsert').html(invis.join(''));
-	$('.active').removeClass('active')
-	$(this).addClass('active')
-	$('.item').each(function () {
-	  $(this).scrollspy('refresh')
-	});
-	$('#items').scrollTop(0);
-	refresh();
-});
-refresh();
-`
