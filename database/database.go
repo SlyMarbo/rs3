@@ -375,95 +375,82 @@ func (d *Database) Read(b []byte) (int, error) {
 }
 
 func Backup(path string) error {
-	bErr := new(BackupFailure)
-	f, err := os.Create(path)
-	if err != nil {
-		return bErr.Append(err)
+	handle := func(err error) {
+		if err != nil {
+			panic(new(BackupFailure).Append(err))
+		}
 	}
 
-	buf := new(bytes.Buffer)
-	zipper := gzip.NewWriter(buf)
-	_, err = io.Copy(zipper, new(Database))
-	if err != nil {
-		return bErr.Append(err)
-	}
-	zipper.Close()
+	// Gzip database JSON into buffer.
 	compressed := new(bytes.Buffer)
-	_, err = io.Copy(compressed, buf)
-	if err != nil {
-		return bErr.Append(err)
-	}
+	zipper := gzip.NewWriter(compressed)
+	_, err = io.Copy(zipper, new(Database))
+	handle(err)
+	zipper.Close()
 
-	//	fmt.Println(buf.Bytes())
+	// Prepare crypto.
 	var key, iv []byte
-	_, err = os.Open("database/backup.key")
+	_, err = os.Stat("database/backup.key")
+	
+	// If we don't have an existing key.
 	if os.IsNotExist(err) {
+		
+		// Create a key.
 		key = make([]byte, 32) //256 bits
 		_, err := io.ReadFull(rand.Reader, key)
-		if err != nil {
-			return bErr.Append(err)
-		}
+		handle(err)
+		
+		// Create an initialisation vector.
 		iv = make([]byte, aes.BlockSize)
 		_, err = io.ReadFull(rand.Reader, iv)
-		if err != nil {
-			return bErr.Append(err)
-		}
-		newKeyFile, err := os.Create("database/backup.key")
-		if err != nil {
-			return bErr.Append(err)
-		}
-		_, err = newKeyFile.Write(key)
-		if err != nil {
-			return bErr.Append(err)
-		}
-		newKeyFile.Close()
-		ivFile, err := os.Create("database/iv.key")
-		if err != nil {
-			return bErr.Append(err)
-		}
-		_, err = ivFile.Write(iv)
-		if err != nil {
-			return bErr.Append(err)
-		}
-		ivFile.Close()
+		handle(err)
+		
+		// Write key.
+		err = ioutil.WriteFile("database/backup.key", key, 0644)
+		handle(err)
+		
+		// Write IV.
+		err = ioutil.WriteFile("database/iv.key", key, 0644)
+		handle(err)
+		
 	} else {
+		
+		// Read in key.
 		key = make([]byte, 32)
 		key, err = ioutil.ReadFile("database/backup.key")
-		if err != nil {
-			return bErr.Append(err)
-		}
+		handle(err)
+		
+		// Read in IV.
 		iv = make([]byte, aes.BlockSize)
 		iv, err = ioutil.ReadFile("database/iv.key")
-		if err != nil {
-			return bErr.Append(err)
-		}
+		handle(err)
 	}
+	
+	// Create the encrypter.
 	block, err := aes.NewCipher(key)
-	if err != nil {
-		return bErr.Append(err)
-	}
+	handle(err)
 	encrypter := cipher.NewCBCEncrypter(block, iv)
-	if err != nil {
-		return bErr.Append(err)
+	handle(err)
+	
+	// Add padding if necessary.
+	dif := aes.BlockSize - (compressed.Len() % aes.BlockSize)
+	if dif == 0 {
+		dif = aes.BlockSize
 	}
-	if dif := compressed.Len() % aes.BlockSize; dif != 0 {
-		dif = aes.BlockSize - dif
-		for i := 0; i < dif; i++ {
-			compressed.Write([]byte{byte(dif)})
-		}
-	} else {
-		for i := 0; i < aes.BlockSize; i++ {
-			compressed.Write([]byte{byte(aes.BlockSize)})
-		}
+	for i := 0; i < dif; i++ {
+		compressed.Write([]byte{byte(dif)})
 	}
+	
+	// Encrypt the data.
 	data := compressed.Bytes()
 	encrypter.CryptBlocks(data, data)
-	//	_, err = io.Copy(buf, new(Database))
-	_, err = io.Copy(f, bytes.NewBuffer(data)) //f.Write(compressed.Bytes())
-	if err == nil {
-		return nil
-	}
-	return bErr.Append(err)
+	
+	// Write to disk.
+	err = ioutil.WriteFile(path, data, 0644)
+	handle(err)
+	
+	
+	return nil
 }
 
 func Restore(path string) error {
