@@ -25,12 +25,6 @@ func Backup(path string) error {
 	_, err := io.Copy(zipper, Reader())
 	handle(err)
 	zipper.Close()
-	
-	myBuf := new(bytes.Buffer)
-	_, err = io.Copy(myBuf, Reader())
-	handle(err)
-	err = ioutil.WriteFile("database/backup.json", myBuf.Bytes(), 0644)
-	handle(err)
 
 	// Prepare crypto.
 	var key, iv []byte
@@ -137,11 +131,11 @@ func Restore(path string) error {
 	r := bytes.NewBuffer(data)
 	unzipper, err := gzip.NewReader(r)
 	handle(err)
-	// unzipper.Close()
-	_, err = io.Copy(new(Database), unzipper)
-	//jsone, err := ioutil.ReadAll(unzipper)
-	handle(err)
 	unzipper.Close()
+	jsonData, err := ioutil.ReadAll(unzipper)
+	handle(err)
+	_, err = new(Database).Write(jsonData)
+	handle(err)
 
 	return nil
 }

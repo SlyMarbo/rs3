@@ -153,7 +153,15 @@ func Console() {
 				fmt.Println("Error serialising database:")
 				fmt.Println(err)
 			} else {
-				fmt.Println(string(data))
+				if len(tokens) > 1 {
+					err = ioutil.WriteFile(tokens[1], data, 0644)
+					if err != nil {
+						fmt.Println("Error writing database to disk:")
+						fmt.Println(err)
+					}
+				} else {
+					fmt.Println(string(data))
+				}
 			}
 
     // Stack trace.

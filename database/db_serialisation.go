@@ -3,7 +3,9 @@ package database
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 )
 
@@ -41,8 +43,9 @@ func toJson() ([]byte, error) {
 }
 
 func fromJson(data []byte) error {
-	err := json.Unmarshal(data, &db)
+	err = json.Unmarshal(data, &db)
 	if err != nil {
+		fmt.Println("Failed to unmarshal JSON.")
 		return err
 	}
 	for _, user := range db.Users {

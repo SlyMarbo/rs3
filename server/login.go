@@ -9,9 +9,17 @@ import (
 	"regexp"
 	"rs3/database"
 	"rs3/security"
+	"time"
 )
 
 func serveLogin(w http.ResponseWriter, r *http.Request, failed bool) {
+	
+	// Remove any existing cookies.
+	w.Header().Add("Set-Cookie", fmt.Sprintf("uid=\"\"; Expires=%s; Secure; HttpOnly",
+		new(time.Time).UTC().Format(http.TimeFormat)))
+	w.Header().Add("Set-Cookie", fmt.Sprintf("auth=\"\"; Expires=%s; Secure; HttpOnly",
+		new(time.Time).UTC().Format(http.TimeFormat)))
+	
 	var path string
 	if failed {
 		path = "server/content/html/failed_login.html"
