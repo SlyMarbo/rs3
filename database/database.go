@@ -2,17 +2,12 @@ package database
 
 import (
 	"bytes"
-	"compress/gzip"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/SlyMarbo/rss"
 	"io"
-	"io/ioutil"
-	"os"
 	sec "rs3/security"
 	"sync"
 	"time"
@@ -36,8 +31,6 @@ type CacheItem struct {
 	Path string
 	Gzip bool
 }
-
-type Database struct{}
 
 // func NewDatabase() *Database
 func newDatabase() *database {
@@ -350,177 +343,6 @@ func Debug() []byte {
 	buf.WriteString(fmt.Sprintf("  Total Salts: %d\n", len(db.Salts)))
 	buf.WriteString(fmt.Sprintf("  Total Emails: %d\n", len(db.Emails)))
 	return buf.Bytes()
-}
-
-func (d *Database) Write(json []byte) (int, error) {
-	// backup
-	err := fromJson(json)
-	if err != nil {
-		return 0, err
-	}
-	return len(json), nil
-}
-
-func (d *Database) Read(b []byte) (int, error) {
-	// restore
-	dBytes, err := toJson()
-	if err != nil {
-		return 0, err
-	}
-	i := 0
-	for l, m := len(b), len(dBytes); i < l && i < m; i++ {
-		b[i] = dBytes[i]
-	}
-	return i, io.EOF
-}
-
-func Backup(path string) error {
-	handle := func(err error) {
-		if err != nil {
-			panic(new(BackupFailure).Append(err))
-		}
-	}
-
-	// Gzip database JSON into buffer.
-	compressed := new(bytes.Buffer)
-	zipper := gzip.NewWriter(compressed)
-	_, err = io.Copy(zipper, new(Database))
-	handle(err)
-	zipper.Close()
-
-	// Prepare crypto.
-	var key, iv []byte
-	_, err = os.Stat("database/backup.key")
-	
-	// If we don't have an existing key.
-	if os.IsNotExist(err) {
-		
-		// Create a key.
-		key = make([]byte, 32) //256 bits
-		_, err := io.ReadFull(rand.Reader, key)
-		handle(err)
-		
-		// Create an initialisation vector.
-		iv = make([]byte, aes.BlockSize)
-		_, err = io.ReadFull(rand.Reader, iv)
-		handle(err)
-		
-		// Write key.
-		err = ioutil.WriteFile("database/backup.key", key, 0644)
-		handle(err)
-		
-		// Write IV.
-		err = ioutil.WriteFile("database/iv.key", key, 0644)
-		handle(err)
-		
-	} else {
-		
-		// Read in key.
-		key = make([]byte, 32)
-		key, err = ioutil.ReadFile("database/backup.key")
-		handle(err)
-		
-		// Read in IV.
-		iv = make([]byte, aes.BlockSize)
-		iv, err = ioutil.ReadFile("database/iv.key")
-		handle(err)
-	}
-	
-	// Create the encrypter.
-	block, err := aes.NewCipher(key)
-	handle(err)
-	encrypter := cipher.NewCBCEncrypter(block, iv)
-	handle(err)
-	
-	// Add padding if necessary.
-	dif := aes.BlockSize - (compressed.Len() % aes.BlockSize)
-	if dif == 0 {
-		dif = aes.BlockSize
-	}
-	for i := 0; i < dif; i++ {
-		compressed.Write([]byte{byte(dif)})
-	}
-	
-	// Encrypt the data.
-	data := compressed.Bytes()
-	encrypter.CryptBlocks(data, data)
-	
-	// Write to disk.
-	err = ioutil.WriteFile(path, data, 0644)
-	handle(err)
-	
-	
-	return nil
-}
-
-func Restore(path string) error {
-	f, err := os.Open(path)
-	rErr := new(RestoreFailure)
-	if err != nil {
-		return rErr.Append(err)
-	}
-	var key, iv []byte
-	_, err = os.Open("database/backup.key")
-	if os.IsNotExist(err) {
-		return rErr.Append(err)
-	} else {
-		key, err = ioutil.ReadFile("database/backup.key")
-		if err != nil {
-			return rErr.Append(err)
-		}
-		iv, err = ioutil.ReadFile("database/iv.key")
-		if err != nil {
-			return rErr.Append(err)
-		}
-	}
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return rErr.Append(err)
-	}
-	decrypter := cipher.NewCBCDecrypter(block, iv)
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return rErr.Append(err)
-	}
-	decrypter.CryptBlocks(data, data)
-
-	dif := int(data[len(data)-1])
-	data = data[:len(data)-dif]
-
-	r := bytes.NewBuffer(data)
-	unzipper, err := gzip.NewReader(r)
-	if err != nil {
-		return rErr.Append(err)
-	}
-	unzipper.Close()
-	_, err = io.Copy(new(Database), unzipper)
-	if err == nil {
-		return nil
-	}
-
-	return rErr.Append(err)
-}
-
-func toJson() ([]byte, error) {
-	//db.RLock()
-	//defer db.RUnlock()
-	b, err := json.Marshal(db)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
-func fromJson(data []byte) error {
-	err := json.Unmarshal(data, &db)
-	if err != nil {
-		return err
-	}
-	for _, user := range db.Users {
-		user.mutex = new(sync.RWMutex)
-	}
-	db.RWMutex = new(sync.RWMutex)
-	return nil
 }
 
 func UidToString(uid []byte) string {
